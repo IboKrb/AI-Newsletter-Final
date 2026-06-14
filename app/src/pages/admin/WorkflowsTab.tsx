@@ -81,6 +81,13 @@ export default function WorkflowsTab({ onGoToRuns }: { onGoToRuns: () => void })
     },
     onError: (e) => toast.error(e.message),
   });
+  const startAll = trpc.workflow.startAll.useMutation({
+    onSuccess: (r) => {
+      toast.success(`${r.runIds.length} Durchläufe gestartet`);
+      utils.workflow.listRuns.invalidate(); onGoToRuns();
+    },
+    onError: (e) => toast.error(e.message),
+  });
 
   const toggleSel = (id: number) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
@@ -108,12 +115,21 @@ export default function WorkflowsTab({ onGoToRuns }: { onGoToRuns: () => void })
           <h2 className="text-base font-semibold">Workflows</h2>
           <span className="text-sm text-muted-foreground">({templates?.length ?? 0})</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {selected.length > 0 && (
             <Button variant="outline" onClick={() => startMultiple.mutate({ templateIds: selected })} disabled={startMultiple.isPending}>
-              <Rocket className="mr-2 h-4 w-4" /> {selected.length} ausgewählte starten
+              <Play className="mr-2 h-4 w-4" /> {selected.length} ausgewählte starten
             </Button>
           )}
+          <Button
+            variant="outline"
+            disabled={startAll.isPending || !templates?.length}
+            onClick={() => {
+              if (confirm(`Alle ${templates?.length ?? 0} Workflows jetzt ausführen?`)) startAll.mutate();
+            }}
+          >
+            <Rocket className="mr-2 h-4 w-4" /> Alle ausführen
+          </Button>
           <Button className="bg-brand-gradient text-white" onClick={() => setEdit({ ...EMPTY })}>
             <Plus className="mr-2 h-4 w-4" /> Neuer Workflow
           </Button>

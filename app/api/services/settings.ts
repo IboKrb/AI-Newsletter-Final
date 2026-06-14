@@ -14,7 +14,10 @@ export type SettingKey =
   | "ai_model"
   | "ai_base_url"
   | "ai_grounding_enabled"
-  | "test_mode";
+  | "test_mode"
+  | "cron_enabled"
+  | "cron_day"
+  | "cron_hour";
 
 const ENV_FALLBACK: Record<SettingKey, string> = {
   ai_api_key: env.aiApiKey,
@@ -22,6 +25,10 @@ const ENV_FALLBACK: Record<SettingKey, string> = {
   ai_base_url: env.aiBaseUrl,
   ai_grounding_enabled: "true",
   test_mode: env.isTestMode ? "true" : "false",
+  // Wöchentlicher Auto-Lauf: standardmäßig Montag (1) um 06:00 Uhr
+  cron_enabled: "true",
+  cron_day: "1",
+  cron_hour: "6",
 };
 
 export async function getSetting(key: SettingKey): Promise<string> {
@@ -65,6 +72,27 @@ export async function getAiConfig(): Promise<AiConfig> {
   };
 }
 
+export interface CronConfig {
+  enabled: boolean;
+  day: number; // 0=So, 1=Mo … 6=Sa
+  hour: number; // 0-23
+}
+
+export async function getCronConfig(): Promise<CronConfig> {
+  const [enabled, day, hour] = await Promise.all([
+    getSetting("cron_enabled"),
+    getSetting("cron_day"),
+    getSetting("cron_hour"),
+  ]);
+  const d = parseInt(day, 10);
+  const h = parseInt(hour, 10);
+  return {
+    enabled: enabled === "true",
+    day: Number.isFinite(d) ? Math.min(6, Math.max(0, d)) : 1,
+    hour: Number.isFinite(h) ? Math.min(23, Math.max(0, h)) : 6,
+  };
+}
+
 /** Maskiert den API-Key für die Anzeige (z.B. "AIza…wXyz"). */
 export function maskKey(key: string): string {
   if (!key) return "";
@@ -74,7 +102,7 @@ export function maskKey(key: string): string {
 
 /** Liefert die Settings für die UI (API-Key maskiert). */
 export async function getPublicSettings() {
-  const cfg = await getAiConfig();
+  const [cfg, cron] = await Promise.all([getAiConfig(), getCronConfig()]);
   return {
     hasApiKey: !!cfg.apiKey,
     apiKeyMasked: maskKey(cfg.apiKey),
@@ -82,5 +110,8 @@ export async function getPublicSettings() {
     baseUrl: cfg.baseUrl,
     grounding: cfg.grounding,
     testMode: cfg.testMode,
+    cronEnabled: cron.enabled,
+    cronDay: cron.day,
+    cronHour: cron.hour,
   };
 }

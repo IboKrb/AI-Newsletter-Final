@@ -7,7 +7,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { KeyRound, Save, Plug, CheckCircle2, XCircle, Sparkles } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { KeyRound, Save, Plug, CheckCircle2, XCircle, Sparkles, CalendarClock } from "lucide-react";
+
+const WEEKDAYS = [
+  { value: 1, label: "Montag" },
+  { value: 2, label: "Dienstag" },
+  { value: 3, label: "Mittwoch" },
+  { value: 4, label: "Donnerstag" },
+  { value: 5, label: "Freitag" },
+  { value: 6, label: "Samstag" },
+  { value: 0, label: "Sonntag" },
+];
 
 export default function SettingsTab() {
   const utils = trpc.useUtils();
@@ -17,6 +34,9 @@ export default function SettingsTab() {
   const [model, setModel] = useState("");
   const [grounding, setGrounding] = useState(true);
   const [testMode, setTestMode] = useState(false);
+  const [cronEnabled, setCronEnabled] = useState(true);
+  const [cronDay, setCronDay] = useState(1);
+  const [cronHour, setCronHour] = useState(6);
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   useEffect(() => {
@@ -24,6 +44,9 @@ export default function SettingsTab() {
       setModel(settings.model || "gemini-2.5-flash");
       setGrounding(settings.grounding);
       setTestMode(settings.testMode);
+      setCronEnabled(settings.cronEnabled);
+      setCronDay(settings.cronDay);
+      setCronHour(settings.cronHour);
     }
   }, [settings]);
 
@@ -48,6 +71,7 @@ export default function SettingsTab() {
   });
 
   return (
+    <div className="space-y-6">
     <div className="grid gap-6 lg:grid-cols-3">
       <Card className="shadow-sm lg:col-span-2">
         <CardHeader>
@@ -180,6 +204,68 @@ export default function SettingsTab() {
             <span className="text-muted-foreground">Test-Modus</span>
             <span className="font-medium">{settings?.testMode ? "an" : "aus"}</span>
           </div>
+        </CardContent>
+      </Card>
+    </div>
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarClock className="h-4 w-4 text-emerald-600" /> Automatischer Wochenlauf
+          </CardTitle>
+          <CardDescription>
+            Führt automatisch alle aktiven Workflows einmal pro Woche aus (Zeitzone Europe/Berlin).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 p-4">
+            <div>
+              <p className="text-sm font-medium">Wöchentlich automatisch ausführen</p>
+              <p className="text-xs text-muted-foreground">
+                Aktiviert den geplanten Lauf. Manuelle Läufe sind jederzeit zusätzlich möglich.
+              </p>
+            </div>
+            <Switch checked={cronEnabled} onCheckedChange={setCronEnabled} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Wochentag</Label>
+              <Select value={String(cronDay)} onValueChange={(v) => setCronDay(Number(v))} disabled={!cronEnabled}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {WEEKDAYS.map((d) => (
+                    <SelectItem key={d.value} value={String(d.value)}>{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Uhrzeit (Stunde, 0–23)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={23}
+                value={cronHour}
+                disabled={!cronEnabled}
+                onChange={(e) => setCronHour(Math.min(23, Math.max(0, Number(e.target.value))))}
+              />
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            {cronEnabled
+              ? `Geplant: jeden ${WEEKDAYS.find((d) => d.value === cronDay)?.label} um ${String(cronHour).padStart(2, "0")}:00 Uhr.`
+              : "Automatische Läufe sind deaktiviert."}
+          </p>
+
+          <Button
+            className="bg-brand-gradient text-white"
+            disabled={update.isPending}
+            onClick={() => update.mutate({ cronEnabled, cronDay, cronHour })}
+          >
+            <Save className="mr-2 h-4 w-4" /> Planung speichern
+          </Button>
         </CardContent>
       </Card>
     </div>

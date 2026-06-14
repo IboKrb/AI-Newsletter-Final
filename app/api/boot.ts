@@ -44,6 +44,6 @@ if (env.isProduction) {
     console.log(`Server running on http://0.0.0.0:${port}/`);
   });
 
-  // Wöchentlichen Cronjob starten
-  startWeeklyCronjob();
+  // Wöchentlichen Cronjob starten (liest Planung aus den Einstellungen)
+  void startWeeklyCronjob();
 }

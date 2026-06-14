@@ -3,6 +3,7 @@ import { createRouter, adminQuery } from "./middleware";
 import * as engine from "./services/workflow-engine";
 import { getPublicSettings, setSetting } from "./services/settings";
 import { getAiClient } from "./services/ai-client";
+import { restartWeeklyCronjob } from "./services/scheduler";
 
 const categoryEnum = z.enum([
   "news",
@@ -136,6 +137,13 @@ export const workflowRouter = createRouter({
       return { runIds };
     }),
 
+  // Alle Workflows auf einmal ausführen
+  startAll: adminQuery.mutation(async () => {
+    const templates = await engine.listTemplates();
+    const runIds = await engine.startMultiple(templates.map((t) => t.id));
+    return { runIds, total: templates.length };
+  }),
+
   cancelRun: adminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {
@@ -154,6 +162,9 @@ export const workflowRouter = createRouter({
         baseUrl: z.string().optional(),
         grounding: z.boolean().optional(),
         testMode: z.boolean().optional(),
+        cronEnabled: z.boolean().optional(),
+        cronDay: z.number().int().min(0).max(6).optional(),
+        cronHour: z.number().int().min(0).max(23).optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -162,6 +173,14 @@ export const workflowRouter = createRouter({
       if (input.baseUrl !== undefined) await setSetting("ai_base_url", input.baseUrl);
       if (input.grounding !== undefined) await setSetting("ai_grounding_enabled", String(input.grounding));
       if (input.testMode !== undefined) await setSetting("test_mode", String(input.testMode));
+
+      let cronChanged = false;
+      if (input.cronEnabled !== undefined) { await setSetting("cron_enabled", String(input.cronEnabled)); cronChanged = true; }
+      if (input.cronDay !== undefined) { await setSetting("cron_day", String(input.cronDay)); cronChanged = true; }
+      if (input.cronHour !== undefined) { await setSetting("cron_hour", String(input.cronHour)); cronChanged = true; }
+      // Cron sofort neu anwenden (greift im Production-Betrieb)
+      if (cronChanged) await restartWeeklyCronjob();
+
       return getPublicSettings();
     }),
 
