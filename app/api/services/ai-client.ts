@@ -319,112 +319,56 @@ class MockAiProvider extends AiProvider {
   }
 }
 
-// ── Mock-Daten (echte Homepage-URLs, aktuelle Datumswerte) ─────────
+// ── Mock-Daten (echte Homepage-URLs, garantierte Vorschaubilder, ≥3/Kategorie) ──
 function generateMockArticles(theme: string): unknown[] {
-  const recent = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400000).toISOString();
-  const base = (overrides: Record<string, unknown>) => ({
+  const recent = (d: number) => new Date(Date.now() - d * 86400000).toISOString();
+  const img = (seed: string) => `https://picsum.photos/seed/${seed}/600/400`;
+  const base = (o: Record<string, unknown>) => ({
     category: theme,
-    relevanceScore: 80 + Math.floor(Math.random() * 20),
-    ...overrides,
+    relevanceScore: 78 + Math.floor(Math.random() * 22),
+    ...o,
   });
 
   const data: Record<string, unknown[]> = {
     news: [
-      base({
-        title: "OpenAI kündigt GPT-5.5 mit verbessertem Reasoning an",
-        summary: "Das neue Modell erreicht Spitzenwerte in wissenschaftlichen Benchmarks und ist ab sofort für Enterprise-Kunden verfügbar.",
-        content: "OpenAI hat GPT-5.5 vorgestellt. Das multimodale Modell verarbeitet Text, Bild und Audio und erreicht 95% menschlicher Leistung in MMLU. Der Preis liegt bei 0,02 USD pro 1K Tokens.",
-        tags: ["openai", "gpt-5", "multimodal", "release", "llm"],
-        sourceName: "TechCrunch",
-        sourceUrl: "https://techcrunch.com/category/artificial-intelligence/",
-        publishedAt: recent(1),
-      }),
-      base({
-        title: "DeepSeek-V4 schlägt Claude bei Mathe-Benchmarks",
-        summary: "Das Open-Source-Modell erreicht 91% auf MATH-500 zu einem Bruchteil der Kosten.",
-        content: "DeepSeek hat V4 veröffentlicht. Es übertrifft Claude bei MATH-500 und kostet nur 0,002 USD pro 1K Tokens. Verfügbar auf Hugging Face.",
-        tags: ["deepseek", "open-source", "research", "benchmark", "llm"],
-        sourceName: "VentureBeat",
-        sourceUrl: "https://venturebeat.com/category/ai/",
-        publishedAt: recent(2),
-      }),
+      base({ title: "OpenAI kündigt GPT-5.5 mit verbessertem Reasoning an", summary: "Das neue Modell erreicht Spitzenwerte in wissenschaftlichen Benchmarks und ist ab sofort für Enterprise-Kunden verfügbar.", content: "OpenAI hat GPT-5.5 vorgestellt. Das multimodale Modell verarbeitet Text, Bild und Audio und erreicht 95% menschlicher Leistung in MMLU.", tags: ["openai", "gpt-5", "multimodal", "release", "llm"], sourceName: "TechCrunch", sourceUrl: "https://techcrunch.com/category/artificial-intelligence/", imageUrl: img("gpt55"), publishedAt: recent(1) }),
+      base({ title: "DeepSeek-V4 schlägt Claude bei Mathe-Benchmarks", summary: "Das Open-Source-Modell erreicht 91% auf MATH-500 zu einem Bruchteil der Kosten.", content: "DeepSeek hat V4 veröffentlicht. Es übertrifft Claude bei MATH-500 und kostet nur 0,002 USD pro 1K Tokens. Verfügbar auf Hugging Face.", tags: ["deepseek", "open-source", "research", "benchmark", "llm"], sourceName: "VentureBeat", sourceUrl: "https://venturebeat.com/category/ai/", imageUrl: img("deepseek4"), publishedAt: recent(2) }),
+      base({ title: "EU AI Act 2.0: Verschärfte Regeln für Foundation Models", summary: "Die überarbeitete Verordnung fordert Transparenzberichte für große Modelle.", content: "Die EU hat den AI Act 2.0 verabschiedet. Modelle über 10 Mrd. Parametern müssen Transparenzberichte veröffentlichen und Sicherheitstests durchlaufen.", tags: ["eu-ai-act", "regulation", "policy", "llm"], sourceName: "The Verge", sourceUrl: "https://www.theverge.com/ai-artificial-intelligence", imageUrl: img("euaiact"), publishedAt: recent(3) }),
     ],
     tools: [
-      base({
-        title: "Devin for Terminal: Autonomer Coding-Agent im CLI",
-        summary: "Cognition Labs bringt Devin als Terminal-Tool — schreibt, testet und debuggt Code vollautomatisch.",
-        content: "Devin for Terminal läuft direkt in der Kommandozeile, klont Repos, schreibt Code und behebt Bugs. Preis: 50 USD/Monat.",
-        tags: ["devin", "agent", "coding", "cli"],
-        sourceName: "Product Hunt",
-        sourceUrl: "https://www.producthunt.com/topics/artificial-intelligence",
-        publishedAt: recent(1),
-      }),
+      base({ title: "Devin for Terminal: Autonomer Coding-Agent im CLI", summary: "Cognition Labs bringt Devin als Terminal-Tool — schreibt, testet und debuggt Code vollautomatisch.", content: "Devin for Terminal läuft direkt in der Kommandozeile, klont Repos, schreibt Code und behebt Bugs. Preis: 50 USD/Monat.", tags: ["devin", "agent", "coding", "cli"], sourceName: "Product Hunt", sourceUrl: "https://www.producthunt.com/topics/artificial-intelligence", imageUrl: img("devin"), publishedAt: recent(1) }),
+      base({ title: "Cursor 2.0: KI-Editor mit Multi-Agenten", summary: "Der KI-Code-Editor kann jetzt mehrere Aufgaben parallel von Agenten erledigen lassen.", content: "Cursor 2.0 führt parallele Agenten ein, die Features eigenständig umsetzen, Tests schreiben und Reviews vorbereiten.", tags: ["cursor", "editor", "agent", "coding"], sourceName: "GitHub", sourceUrl: "https://github.com/trending", imageUrl: img("cursor2"), publishedAt: recent(2) }),
+      base({ title: "Perplexity Labs: Recherche-Workflows automatisieren", summary: "Neues Tool bündelt Web-Recherche, Analyse und Report-Erstellung.", content: "Perplexity Labs erlaubt es, mehrstufige Recherche-Workflows zu definieren und als Report zu exportieren.", tags: ["perplexity", "recherche", "automation", "tool"], sourceName: "There's An AI For That", sourceUrl: "https://theresanaiforthat.com/", imageUrl: img("pplxlabs"), publishedAt: recent(3) }),
     ],
     prompts: [
-      base({
-        title: "Der 'World-Class Expert' Prompt für Analysen",
-        summary: "Role-Playing + strukturierte Perspektiven für konsultative Spitzenqualität.",
-        content: "Dieser Prompt nutzt Role-Playing und erzwungenes Format. Ideal für Strategie und Due Diligence.",
-        tags: ["prompt-engineering", "analyse", "strategie", "llm"],
-        sourceName: "PromptHero",
-        sourceUrl: "https://prompthero.com/",
-        publishedAt: recent(3),
-      }),
+      base({ title: "Der 'World-Class Expert' Prompt für Analysen", summary: "Role-Playing + strukturierte Perspektiven für konsultative Spitzenqualität.", content: "Dieser Prompt nutzt Role-Playing und erzwungenes Format. Ideal für Strategie und Due Diligence.", tags: ["prompt-engineering", "analyse", "strategie", "llm"], sourceName: "PromptHero", sourceUrl: "https://prompthero.com/", imageUrl: img("expertprompt"), publishedAt: recent(2) }),
+      base({ title: "Chain-of-Thought für komplexe Mathe-Aufgaben", summary: "Schritt-für-Schritt-Denken erzwingt bessere Ergebnisse.", content: "Mit 'Löse Schritt für Schritt und überprüfe das Ergebnis' steigt die Genauigkeit bei Logik- und Mathe-Aufgaben deutlich.", tags: ["chain-of-thought", "reasoning", "prompt-engineering", "llm"], sourceName: "r/PromptEngineering", sourceUrl: "https://www.reddit.com/r/PromptEngineering/", imageUrl: img("cot"), publishedAt: recent(4) }),
+      base({ title: "Die ultimative Bild-Prompt-Formel", summary: "Kamera-Parameter + Licht + Stil-Referenzen für fotorealistische Bilder.", content: "Kombiniere Kamera (Sony α7), Objektiv (85mm, f/1.4), Licht (golden hour) und Stil für überzeugende Ergebnisse.", tags: ["image-generation", "midjourney", "prompt-engineering", "photography"], sourceName: "Awesome ChatGPT Prompts", sourceUrl: "https://github.com/f/awesome-chatgpt-prompts", imageUrl: img("imgformula"), publishedAt: recent(5) }),
     ],
     tutorials: [
-      base({
-        title: "RAG-Systeme von Grund auf bauen",
-        summary: "Schritt-für-Schritt Guide für Retrieval-Augmented Generation.",
-        content: "Dokumente chunken, Embeddings erstellen, Vector-DB einrichten, Retrieval-Chain bauen. Code auf GitHub.",
-        tags: ["rag", "tutorial", "embeddings", "llm"],
-        sourceName: "freeCodeCamp",
-        sourceUrl: "https://www.freecodecamp.org/news/",
-        publishedAt: recent(2),
-      }),
+      base({ title: "RAG-Systeme von Grund auf bauen", summary: "Schritt-für-Schritt Guide für Retrieval-Augmented Generation.", content: "Dokumente chunken, Embeddings erstellen, Vector-DB einrichten, Retrieval-Chain bauen. Code auf GitHub.", tags: ["rag", "tutorial", "embeddings", "llm"], sourceName: "freeCodeCamp", sourceUrl: "https://www.freecodecamp.org/news/", imageUrl: img("ragtut"), publishedAt: recent(2) }),
+      base({ title: "Claude Projects: Wissensbasis richtig nutzen", summary: "200K-Token-Kontext optimal ausschöpfen.", content: "Projektstruktur anlegen, Knowledge Base befüllen, mit Claude Code synchronisieren und Prompt-Patterns wiederverwenden.", tags: ["claude", "tutorial", "knowledge-base", "anthropic"], sourceName: "Dev.to", sourceUrl: "https://dev.to/t/ai", imageUrl: img("claudeproj"), publishedAt: recent(3) }),
+      base({ title: "LLMs mit LoRA feintunen", summary: "Praxis-Guide für günstiges Fine-Tuning.", content: "Dataset vorbereiten, LoRA-Config setzen, mit Hugging Face trainieren und evaluieren — ab ca. 5 USD pro Epoch.", tags: ["fine-tuning", "lora", "tutorial", "llm"], sourceName: "YouTube", sourceUrl: "https://www.youtube.com/results?search_query=lora+fine+tuning", imageUrl: img("lora"), publishedAt: recent(5) }),
     ],
     podcasts: [
-      base({
-        title: "Latent Space: Developer Productivity",
-        summary: "Swyx und Alessio sprechen über Claude Code und Devin.",
-        content: "Episode über die Zukunft des AI-Assisted Coding mit Anthropic Engineers.",
-        tags: ["podcast", "claude-code", "agent", "coding"],
-        sourceName: "Latent Space",
-        sourceUrl: "https://www.latent.space/",
-        publishedAt: recent(4),
-      }),
+      base({ title: "Latent Space: Developer Productivity", summary: "Swyx und Alessio sprechen über Claude Code und Devin.", content: "Episode über die Zukunft des AI-Assisted Coding mit Anthropic Engineers.", tags: ["podcast", "claude-code", "agent", "coding"], sourceName: "Latent Space", sourceUrl: "https://www.latent.space/", imageUrl: img("latentspace"), publishedAt: recent(4) }),
+      base({ title: "TWIML: Data Poisoning & KI-Sicherheit", summary: "Sam Charrington diskutiert den Schutz von Trainingsdaten.", content: "Gespräch über Nightshade, Data Poisoning, Copyright und die technischen Hintergründe.", tags: ["podcast", "security", "research", "ki"], sourceName: "The TWIML AI Podcast", sourceUrl: "https://twimlai.com/podcast/", imageUrl: img("twiml"), publishedAt: recent(6) }),
+      base({ title: "AI Engineer: Agentic Workflows in Produktion", summary: "Wie autonome Agenten im Unternehmen eingesetzt werden.", content: "Harrison Chase und Jerry Liu über ReAct, Tool-Use und Multi-Agent-Systeme im Praxiseinsatz.", tags: ["podcast", "agent", "workflows", "langchain"], sourceName: "Spotify", sourceUrl: "https://open.spotify.com/", imageUrl: img("aieng"), publishedAt: recent(7) }),
     ],
     videos: [
-      base({
-        title: "Claude Code Tutorial 2026 — Complete Guide",
-        summary: "Von Plan Mode über Subagents bis Custom Skills.",
-        content: "42-minütiges Tutorial über Claude Code: Plan Mode, Subagents, MCP-Integration.",
-        tags: ["claude-code", "video", "tutorial", "coding"],
-        sourceName: "YouTube",
-        sourceUrl: "https://www.youtube.com/results?search_query=claude+code+tutorial",
-        publishedAt: recent(2),
-      }),
+      base({ title: "Claude Code Tutorial 2026 — Complete Guide", summary: "Von Plan Mode über Subagents bis Custom Skills.", content: "42-minütiges Tutorial über Claude Code: Plan Mode, Subagents, MCP-Integration.", tags: ["claude-code", "video", "tutorial", "coding"], sourceName: "YouTube", sourceUrl: "https://www.youtube.com/watch?v=gVsjjUIbE9k", imageUrl: img("ccvideo"), publishedAt: recent(2) }),
+      base({ title: "Einen AI-Agenten in Python bauen", summary: "Schritt-für-Schritt-Coding-Tutorial für einen autonomen Agenten.", content: "OpenAI-API-Setup, Tool-Definition, ReAct-Loop, Memory und Fehlerbehandlung — Code auf GitHub.", tags: ["ai-agent", "python", "video", "tutorial"], sourceName: "YouTube", sourceUrl: "https://www.youtube.com/watch?v=agent-python", imageUrl: img("agentpy"), publishedAt: recent(4) }),
+      base({ title: "Vision-Modelle erklärt: CLIP, DINOv2, SAM", summary: "Die wichtigsten Computer-Vision-Modelle 2026.", content: "Architektur, Training und Use-Cases von CLIP, DINOv2 und SAM verständlich erklärt.", tags: ["vision", "video", "research", "ki"], sourceName: "YouTube", sourceUrl: "https://www.youtube.com/watch?v=vision-models", imageUrl: img("vision"), publishedAt: recent(6) }),
     ],
     reads: [
-      base({
-        title: "10 Things That Matter in AI Right Now",
-        summary: "MIT Technology Review zur Lage der KI: World Models, Agent Orchestration.",
-        content: "Die jährliche Liste: World Models, Agent Orchestration, Multimodal Reasoning, AI Safety.",
-        tags: ["research", "trends", "agent", "llm"],
-        sourceName: "MIT Technology Review",
-        sourceUrl: "https://www.technologyreview.com/",
-        publishedAt: recent(5),
-      }),
+      base({ title: "10 Things That Matter in AI Right Now", summary: "MIT Technology Review zur Lage der KI: World Models, Agent Orchestration.", content: "Die jährliche Liste: World Models, Agent Orchestration, Multimodal Reasoning, AI Safety.", tags: ["research", "trends", "agent", "llm"], sourceName: "MIT Technology Review", sourceUrl: "https://www.technologyreview.com/", imageUrl: img("mit10"), publishedAt: recent(5) }),
+      base({ title: "Vier KI-Research-Trends für Enterprise-Teams", summary: "Continual Learning, Memory-Architekturen, Nested Learning, Agenten.", content: "VentureBeat analysiert vier Trends mit konkreten Anwendungsfällen für Unternehmen.", tags: ["enterprise", "research", "trends", "agent"], sourceName: "VentureBeat", sourceUrl: "https://venturebeat.com/category/ai/", imageUrl: img("4trends"), publishedAt: recent(7) }),
+      base({ title: "Mastering AI Prompts: 10 bewährte Techniken", summary: "Von Photography Approach bis Weighted Control.", content: "Zehn Techniken für bessere Bildgenerierung mit Beispielen für Midjourney, DALL-E und Stable Diffusion.", tags: ["image-generation", "prompt-engineering", "reads", "midjourney"], sourceName: "Substack", sourceUrl: "https://substack.com/", imageUrl: img("masterprompts"), publishedAt: recent(8) }),
     ],
     image_gen: [
-      base({
-        title: "Photography Approach: Fotorealistische AI-Bilder",
-        summary: "Kamera-Parameter + Licht-Setup für professionelle Ergebnisse.",
-        content: "Spezifiziere Kamera-Body, Objektiv, Blende und Lichtquelle für fotorealistische Midjourney-Bilder.",
-        tags: ["image-generation", "midjourney", "prompt-engineering", "photography"],
-        sourceName: "Midjourney",
-        sourceUrl: "https://www.midjourney.com/showcase",
-        publishedAt: recent(3),
-      }),
+      base({ title: "Photography Approach: Fotorealistische AI-Bilder", summary: "Kamera-Parameter + Licht-Setup für professionelle Ergebnisse.", content: "Spezifiziere Kamera-Body, Objektiv, Blende und Lichtquelle für fotorealistische Midjourney-Bilder.", tags: ["image-generation", "midjourney", "prompt-engineering", "photography"], sourceName: "Midjourney", sourceUrl: "https://www.midjourney.com/showcase", imageUrl: img("photoapproach"), publishedAt: recent(3) }),
+      base({ title: "Fantasy World Builder mit Künstler-Referenzen", summary: "Epische Szenen über Stil-Referenzen bekannter Künstler.", content: "Künstler-Namen als Shortcut für Stil, Stimmung und Komposition — plus atmosphärische Layer.", tags: ["image-generation", "fantasy", "midjourney", "stil"], sourceName: "Civitai", sourceUrl: "https://civitai.com/", imageUrl: img("fantasy"), publishedAt: recent(5) }),
+      base({ title: "Character Consistency über mehrere Bilder", summary: "Gleiche Figur in Bildserien beibehalten.", content: "Seed-Locking, Referenzbilder, exakte Beschreibungen und Negative Prompting für konsistente Charaktere.", tags: ["image-generation", "character", "midjourney", "technik"], sourceName: "DALL-E Blog", sourceUrl: "https://openai.com/", imageUrl: img("charconsist"), publishedAt: recent(6) }),
     ],
   };
   return data[theme] ?? data.news;

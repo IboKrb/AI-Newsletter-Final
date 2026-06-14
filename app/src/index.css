@@ -82,7 +82,6 @@
       radial-gradient(50rem 50rem at 100% 0%, hsl(180 80% 90% / 0.5), transparent 55%),
       radial-gradient(circle at 1px 1px, hsl(165 20% 80% / 0.4) 1px, transparent 0);
     background-size: 100% 100%, 100% 100%, 22px 22px;
-    background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
   }
 }

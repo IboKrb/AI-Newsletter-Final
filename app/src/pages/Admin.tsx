@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   FileText,
   Workflow,
+  Network,
   History,
   Globe,
   Settings,
@@ -20,16 +21,18 @@ import { useAuth } from "@/hooks/useAuth";
 import OverviewTab from "./admin/OverviewTab";
 import ArticlesTab from "./admin/ArticlesTab";
 import WorkflowsTab from "./admin/WorkflowsTab";
+import WorkflowBoardTab from "./admin/WorkflowBoardTab";
 import RunsTab from "./admin/RunsTab";
 import SourcesTab from "./admin/SourcesTab";
 import SettingsTab from "./admin/SettingsTab";
 
-type Tab = "overview" | "articles" | "workflows" | "runs" | "sources" | "settings";
+type Tab = "overview" | "articles" | "workflows" | "board" | "runs" | "sources" | "settings";
 
 const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
   { id: "overview", label: "Übersicht", icon: LayoutDashboard },
   { id: "articles", label: "Artikel", icon: FileText },
   { id: "workflows", label: "Workflows", icon: Workflow },
+  { id: "board", label: "Board", icon: Network },
   { id: "runs", label: "Durchläufe", icon: History },
   { id: "sources", label: "Quellen", icon: Globe },
   { id: "settings", label: "Einstellungen", icon: Settings },
@@ -118,6 +121,7 @@ export default function Admin() {
           {tab === "overview" && <OverviewTab onNavigate={(t) => setTab(t as Tab)} />}
           {tab === "articles" && <ArticlesTab />}
           {tab === "workflows" && <WorkflowsTab onGoToRuns={() => setTab("runs")} />}
+          {tab === "board" && <WorkflowBoardTab />}
           {tab === "runs" && <RunsTab />}
           {tab === "sources" && <SourcesTab />}
           {tab === "settings" && <SettingsTab />}

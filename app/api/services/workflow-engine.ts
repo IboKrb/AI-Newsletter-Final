@@ -310,7 +310,7 @@ WICHTIG — Gib AUSSCHLIESSLICH gültiges JSON zurück (kein Markdown, keine Erk
     }
   ]
 }
-Liefere maximal ${maxArticles} Artikel. Nutze NUR echte, verifizierbare Quellen mit funktionierenden URLs.`;
+Liefere MINDESTENS 5 Artikel (niemals weniger als 3) und höchstens ${maxArticles}. Falls eine Quelle wenig hergibt, recherchiere zusätzliche Quellen, um die Mindestanzahl zu erreichen. Nutze NUR echte, verifizierbare Quellen mit funktionierenden URLs.`;
 }
 
 interface RawArticle {
@@ -321,6 +321,7 @@ interface RawArticle {
   tags?: unknown;
   sourceName?: string;
   sourceUrl?: string;
+  imageUrl?: string;
   publishedAt?: string;
   relevanceScore?: number;
 }
@@ -354,20 +355,28 @@ function youtubeId(url: string): string | null {
   return m ? m[1] : null;
 }
 
-/** Liest og:image / twitter:image aus HTML (oder null). */
+/** Liest ein Vorschaubild aus HTML: og:image → twitter:image → image_src → itemprop → erstes <img>. */
 function extractOgImage(html: string, baseUrl: string): string | null {
-  const patterns = [
+  const abs = (u: string) => {
+    try { return new URL(u, baseUrl).toString(); } catch { return u; }
+  };
+  const metaPatterns = [
     /<meta[^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["'][^>]+content=["']([^"']+)["']/i,
     /<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i,
+    /<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i,
+    /<meta[^>]+itemprop=["']image["'][^>]+content=["']([^"']+)["']/i,
   ];
-  for (const re of patterns) {
+  for (const re of metaPatterns) {
     const m = html.match(re);
-    if (m && m[1]) {
-      try {
-        return new URL(m[1], baseUrl).toString();
-      } catch {
-        return m[1];
-      }
+    if (m && m[1]) return abs(m[1]);
+  }
+  // Letzter Fallback: erstes inhaltliches <img> (keine Icons/SVG/Tracking-Pixel)
+  const imgRe = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+  let im: RegExpExecArray | null;
+  while ((im = imgRe.exec(html))) {
+    const src = im[1];
+    if (/^https?:\/\//i.test(abs(src)) && !/\.svg(\?|$)/i.test(src) && !/(sprite|logo|icon|pixel|1x1|blank|avatar)/i.test(src)) {
+      return abs(src);
     }
   }
   return null;
@@ -417,17 +426,27 @@ async function resolveSource(
   modelUrl: string,
   modelName: string,
   grounding: GroundingSource[],
+  candidateImage?: string,
 ): Promise<{ url: string; name: string; image: string | null }> {
   const insp = await inspectUrl(modelUrl);
-  if (insp.ok) {
-    return { url: modelUrl, name: modelName, image: insp.image };
+  let url = modelUrl;
+  let name = modelName;
+  let ogImage = insp.image;
+
+  if (!insp.ok) {
+    const fallback = grounding.find((g) => g.url);
+    if (fallback) {
+      const fbInsp = await inspectUrl(fallback.url);
+      url = fallback.url;
+      name = fallback.name || modelName;
+      ogImage = fbInsp.image;
+    }
   }
-  const fallback = grounding.find((g) => g.url);
-  if (fallback) {
-    const fbInsp = await inspectUrl(fallback.url);
-    return { url: fallback.url, name: fallback.name || modelName, image: fbInsp.image };
-  }
-  return { url: modelUrl, name: modelName, image: insp.image };
+
+  // Bildpriorität: vom Modell geliefertes Bild (falls valide URL) → og:image der Seite
+  const candidate =
+    candidateImage && /^https?:\/\//i.test(candidateImage) ? candidateImage : null;
+  return { url, name, image: candidate ?? ogImage };
 }
 
 /** Validiert das vom Modell gelieferte Veröffentlichungsdatum (sonst: jetzt). */
@@ -499,7 +518,7 @@ async function runWorkflow(
       // Grounding-Quellen ersetzen (verhindert Links auf erfundene Seiten). Parallel.
       const resolvedSources = await Promise.all(
         valid.map((a) =>
-          resolveSource(a.sourceUrl!.trim(), a.sourceName ?? "Unbekannt", res.groundingSources),
+          resolveSource(a.sourceUrl!.trim(), a.sourceName ?? "Unbekannt", res.groundingSources, a.imageUrl),
         ),
       );
 
