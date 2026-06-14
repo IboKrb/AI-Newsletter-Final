@@ -9,7 +9,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Newspaper, ExternalLink, Calendar, Tag, Inbox } from "lucide-react";
+import {
+  Newspaper, ExternalLink, Calendar, Tag, Inbox,
+  Wrench, Sparkles, GraduationCap, Mic, Video, BookOpen, Image as ImageIcon,
+  type LucideIcon,
+} from "lucide-react";
+import ArticleThumb from "@/components/ArticleThumb";
 
 const CATEGORY_LABEL: Record<string, string> = {
   news: "News",
@@ -22,6 +27,17 @@ const CATEGORY_LABEL: Record<string, string> = {
   image_gen: "Bildgenerierung",
 };
 const CATEGORY_ORDER = ["news", "tools", "prompts", "tutorials", "podcasts", "videos", "reads", "image_gen"];
+
+const CATEGORY_ICON: Record<string, LucideIcon> = {
+  news: Newspaper,
+  tools: Wrench,
+  prompts: Sparkles,
+  tutorials: GraduationCap,
+  podcasts: Mic,
+  videos: Video,
+  reads: BookOpen,
+  image_gen: ImageIcon,
+};
 
 function parseTags(tags: string | null): string[] {
   if (!tags) return [];
@@ -42,6 +58,7 @@ type Article = {
   tags: string | null;
   sourceName: string;
   sourceUrl: string;
+  imageUrl: string | null;
   publishedAt: string | Date | null;
 };
 
@@ -77,11 +94,13 @@ export default function PublishedFeed() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16">
-      {byCategory.map((group) => (
+      {byCategory.map((group) => {
+        const Icon = CATEGORY_ICON[group.cat] ?? Newspaper;
+        return (
         <section key={group.cat} id={group.cat} className="mb-16 scroll-mt-20">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-gradient">
-              <Newspaper className="h-5 w-5 text-white" />
+              <Icon className="h-5 w-5 text-white" />
             </div>
             <div>
               <h2 className="text-2xl font-bold tracking-tight">{CATEGORY_LABEL[group.cat] ?? group.cat}</h2>
@@ -95,9 +114,12 @@ export default function PublishedFeed() {
               return (
                 <Card
                   key={a.id}
-                  className="card-hover cursor-pointer"
+                  className="card-hover cursor-pointer overflow-hidden"
                   onClick={() => setSelected(a)}
                 >
+                  <div className="h-40 w-full border-b border-border">
+                    <ArticleThumb src={a.imageUrl} alt={a.title} className="h-full w-full" />
+                  </div>
                   <CardHeader className="pb-3">
                     <div className="mb-1.5 flex items-center gap-2">
                       <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">
@@ -126,7 +148,8 @@ export default function PublishedFeed() {
             })}
           </div>
         </section>
-      ))}
+        );
+      })}
 
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
@@ -143,6 +166,13 @@ export default function PublishedFeed() {
                 <DialogDescription>{selected.summary}</DialogDescription>
               </DialogHeader>
               <div className="mt-2 space-y-4">
+                {selected.imageUrl && (
+                  <ArticleThumb
+                    src={selected.imageUrl}
+                    alt={selected.title}
+                    className="h-52 w-full rounded-xl border border-border"
+                  />
+                )}
                 <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">{selected.content}</p>
                 <div className="flex flex-wrap gap-1">
                   {parseTags(selected.tags).map((t) => (

@@ -319,13 +319,11 @@ class MockAiProvider extends AiProvider {
   }
 }
 
-// ── Mock-Daten ─────────────────────────────────────────────────────
+// ── Mock-Daten (echte Homepage-URLs, aktuelle Datumswerte) ─────────
 function generateMockArticles(theme: string): unknown[] {
-  const rnd = Math.floor(Math.random() * 9000) + 1000;
+  const recent = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400000).toISOString();
   const base = (overrides: Record<string, unknown>) => ({
     category: theme,
-    tags: ["openai", "llm", "ki", "release"],
-    publishedAt: "2026-06-10T10:00:00Z",
     relevanceScore: 80 + Math.floor(Math.random() * 20),
     ...overrides,
   });
@@ -333,90 +331,99 @@ function generateMockArticles(theme: string): unknown[] {
   const data: Record<string, unknown[]> = {
     news: [
       base({
-        title: `OpenAI kündigt GPT-5.5 mit verbessertem Reasoning an (#${rnd})`,
+        title: "OpenAI kündigt GPT-5.5 mit verbessertem Reasoning an",
         summary: "Das neue Modell erreicht Spitzenwerte in wissenschaftlichen Benchmarks und ist ab sofort für Enterprise-Kunden verfügbar.",
-        content: "OpenAI hat heute GPT-5.5 vorgestellt. Das multimodale Modell verarbeitet Text, Bild und Audio und erreicht 95% menschlicher Leistung in MMLU. Der Preis liegt bei 0,02 USD pro 1K Tokens.",
+        content: "OpenAI hat GPT-5.5 vorgestellt. Das multimodale Modell verarbeitet Text, Bild und Audio und erreicht 95% menschlicher Leistung in MMLU. Der Preis liegt bei 0,02 USD pro 1K Tokens.",
         tags: ["openai", "gpt-5", "multimodal", "release", "llm"],
         sourceName: "TechCrunch",
-        sourceUrl: `https://techcrunch.com/2026/06/openai-gpt55-${rnd}`,
+        sourceUrl: "https://techcrunch.com/category/artificial-intelligence/",
+        publishedAt: recent(1),
       }),
       base({
-        title: `DeepSeek-V4 schlägt Claude bei Mathe-Benchmarks (#${rnd})`,
+        title: "DeepSeek-V4 schlägt Claude bei Mathe-Benchmarks",
         summary: "Das Open-Source-Modell erreicht 91% auf MATH-500 zu einem Bruchteil der Kosten.",
         content: "DeepSeek hat V4 veröffentlicht. Es übertrifft Claude bei MATH-500 und kostet nur 0,002 USD pro 1K Tokens. Verfügbar auf Hugging Face.",
         tags: ["deepseek", "open-source", "research", "benchmark", "llm"],
         sourceName: "VentureBeat",
-        sourceUrl: `https://venturebeat.com/2026/06/deepseek-v4-${rnd}`,
+        sourceUrl: "https://venturebeat.com/category/ai/",
+        publishedAt: recent(2),
       }),
     ],
     tools: [
       base({
-        title: `Devin for Terminal: Autonomer Coding-Agent im CLI (#${rnd})`,
+        title: "Devin for Terminal: Autonomer Coding-Agent im CLI",
         summary: "Cognition Labs bringt Devin als Terminal-Tool — schreibt, testet und debuggt Code vollautomatisch.",
         content: "Devin for Terminal läuft direkt in der Kommandozeile, klont Repos, schreibt Code und behebt Bugs. Preis: 50 USD/Monat.",
         tags: ["devin", "agent", "coding", "cli"],
         sourceName: "Product Hunt",
-        sourceUrl: `https://producthunt.com/devin-terminal-${rnd}`,
+        sourceUrl: "https://www.producthunt.com/topics/artificial-intelligence",
+        publishedAt: recent(1),
       }),
     ],
     prompts: [
       base({
-        title: `Der 'World-Class Expert' Prompt für Analysen (#${rnd})`,
+        title: "Der 'World-Class Expert' Prompt für Analysen",
         summary: "Role-Playing + strukturierte Perspektiven für konsultative Spitzenqualität.",
         content: "Dieser Prompt nutzt Role-Playing und erzwungenes Format. Ideal für Strategie und Due Diligence.",
         tags: ["prompt-engineering", "analyse", "strategie", "llm"],
         sourceName: "PromptHero",
-        sourceUrl: `https://prompthero.com/expert-${rnd}`,
+        sourceUrl: "https://prompthero.com/",
+        publishedAt: recent(3),
       }),
     ],
     tutorials: [
       base({
-        title: `RAG-Systeme von Grund auf bauen (#${rnd})`,
+        title: "RAG-Systeme von Grund auf bauen",
         summary: "Schritt-für-Schritt Guide für Retrieval-Augmented Generation.",
         content: "Dokumente chunken, Embeddings erstellen, Vector-DB einrichten, Retrieval-Chain bauen. Code auf GitHub.",
         tags: ["rag", "tutorial", "embeddings", "llm"],
-        sourceName: "FreeCodeCamp",
-        sourceUrl: `https://freecodecamp.org/rag-${rnd}`,
+        sourceName: "freeCodeCamp",
+        sourceUrl: "https://www.freecodecamp.org/news/",
+        publishedAt: recent(2),
       }),
     ],
     podcasts: [
       base({
-        title: `Latent Space: Developer Productivity (#${rnd})`,
+        title: "Latent Space: Developer Productivity",
         summary: "Swyx und Alessio sprechen über Claude Code und Devin.",
         content: "Episode über die Zukunft des AI-Assisted Coding mit Anthropic Engineers.",
         tags: ["podcast", "claude-code", "agent", "coding"],
-        sourceName: "Spotify",
-        sourceUrl: `https://open.spotify.com/latentspace-${rnd}`,
+        sourceName: "Latent Space",
+        sourceUrl: "https://www.latent.space/",
+        publishedAt: recent(4),
       }),
     ],
     videos: [
       base({
-        title: `Claude Code Tutorial 2026 — Complete Guide (#${rnd})`,
+        title: "Claude Code Tutorial 2026 — Complete Guide",
         summary: "Von Plan Mode über Subagents bis Custom Skills.",
         content: "42-minütiges Tutorial über Claude Code: Plan Mode, Subagents, MCP-Integration.",
         tags: ["claude-code", "video", "tutorial", "coding"],
         sourceName: "YouTube",
-        sourceUrl: `https://youtube.com/watch?v=cc-${rnd}`,
+        sourceUrl: "https://www.youtube.com/results?search_query=claude+code+tutorial",
+        publishedAt: recent(2),
       }),
     ],
     reads: [
       base({
-        title: `10 Things That Matter in AI Right Now (#${rnd})`,
+        title: "10 Things That Matter in AI Right Now",
         summary: "MIT Technology Review zur Lage der KI: World Models, Agent Orchestration.",
         content: "Die jährliche Liste: World Models, Agent Orchestration, Multimodal Reasoning, AI Safety.",
         tags: ["research", "trends", "agent", "llm"],
         sourceName: "MIT Technology Review",
-        sourceUrl: `https://technologyreview.com/10-things-${rnd}`,
+        sourceUrl: "https://www.technologyreview.com/",
+        publishedAt: recent(5),
       }),
     ],
     image_gen: [
       base({
-        title: `Photography Approach: Fotorealistische AI-Bilder (#${rnd})`,
+        title: "Photography Approach: Fotorealistische AI-Bilder",
         summary: "Kamera-Parameter + Licht-Setup für professionelle Ergebnisse.",
         content: "Spezifiziere Kamera-Body, Objektiv, Blende und Lichtquelle für fotorealistische Midjourney-Bilder.",
         tags: ["image-generation", "midjourney", "prompt-engineering", "photography"],
-        sourceName: "Midjourney Community",
-        sourceUrl: `https://midjourney.com/photography-${rnd}`,
+        sourceName: "Midjourney",
+        sourceUrl: "https://www.midjourney.com/showcase",
+        publishedAt: recent(3),
       }),
     ],
   };

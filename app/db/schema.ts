@@ -275,6 +275,7 @@ export const articles = pgTable("articles", {
 
   sourceName: varchar("source_name", { length: 100 }).notNull(),
   sourceUrl: text("source_url").notNull(),
+  imageUrl: text("image_url"),
 
   publishedAt: timestamp("published_at", { withTimezone: true }),
   fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),

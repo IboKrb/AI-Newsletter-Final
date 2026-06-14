@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ArticleThumb from "@/components/ArticleThumb";
 import { useAuth } from "@/hooks/useAuth";
 
 const CATEGORIES = [
@@ -121,12 +122,12 @@ export default function Library() {
                   Suche
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground0" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     placeholder="Stichwort, Titel, Inhalt..."
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
-                    className="border-border bg-card pl-10 text-foreground placeholder:text-foreground0 focus-visible:ring-emerald-500"
+                    className="border-border bg-card pl-10 text-foreground placeholder:text-muted-foreground focus-visible:ring-emerald-500"
                   />
                 </div>
               </div>
@@ -199,7 +200,7 @@ export default function Library() {
             {/* Aktive Filter als Badges */}
             {hasFilters && (
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                <Filter className="h-4 w-4 text-foreground0" />
+                <Filter className="h-4 w-4 text-muted-foreground" />
                 {searchQuery && (
                   <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600">
                     Suche: {searchQuery}
@@ -243,9 +244,12 @@ export default function Library() {
                 return (
                   <Card
                     key={article.id}
-                    className="group cursor-pointer border-border bg-card transition-all hover:border-border hover:bg-muted"
+                    className="card-hover group cursor-pointer overflow-hidden"
                     onClick={() => setSelectedArticle(article)}
                   >
+                    <div className="h-40 w-full border-b border-border">
+                      <ArticleThumb src={article.imageUrl} alt={article.title} className="h-full w-full" />
+                    </div>
                     <CardHeader className="pb-3">
                       <div className="mb-2 flex items-center gap-2">
                         {cat && (
@@ -253,7 +257,7 @@ export default function Library() {
                             {cat.label}
                           </Badge>
                         )}
-                        <span className="text-xs text-foreground0">
+                        <span className="text-xs text-muted-foreground">
                           {article.sourceName}
                         </span>
                       </div>
@@ -270,14 +274,14 @@ export default function Library() {
                           <Badge
                             key={tag}
                             variant="outline"
-                            className="border-border text-xs text-foreground0"
+                            className="border-border text-xs text-muted-foreground"
                           >
                             <Tag className="mr-1 h-2.5 w-2.5" />
                             {tag}
                           </Badge>
                         ))}
                       </div>
-                      <div className="mt-3 flex items-center gap-2 text-xs text-foreground0">
+                      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         {article.publishedAt
                           ? new Date(article.publishedAt).toLocaleDateString("de-DE")
@@ -347,6 +351,13 @@ export default function Library() {
               </DialogHeader>
 
               <div className="mt-4 space-y-4">
+                {selectedArticle.imageUrl && (
+                  <ArticleThumb
+                    src={selectedArticle.imageUrl}
+                    alt={selectedArticle.title}
+                    className="h-52 w-full rounded-xl border border-border"
+                  />
+                )}
                 <div className="prose max-w-none text-sm text-muted-foreground">
                   {selectedArticle.content}
                 </div>
@@ -357,7 +368,7 @@ export default function Library() {
                       <Badge
                         key={tag}
                         variant="outline"
-                        className="border-border text-foreground0"
+                        className="border-border text-muted-foreground"
                       >
                         <Tag className="mr-1 h-2.5 w-2.5" />
                         {tag}
@@ -367,7 +378,7 @@ export default function Library() {
                 )}
 
                 <div className="flex items-center justify-between border-t border-border pt-4">
-                  <div className="text-xs text-foreground0">
+                  <div className="text-xs text-muted-foreground">
                     <Calendar className="mr-1 inline h-3 w-3" />
                     {selectedArticle.publishedAt
                       ? new Date(selectedArticle.publishedAt).toLocaleDateString("de-DE")

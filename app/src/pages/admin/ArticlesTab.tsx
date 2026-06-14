@@ -28,6 +28,7 @@ import {
 import {
   CATEGORIES, CATEGORY_LABEL, ARTICLE_STATUS, STATUS_STYLES, formatDate, parseTags,
 } from "./constants";
+import ArticleThumb from "@/components/ArticleThumb";
 
 type ArticleForm = {
   id?: number;
@@ -184,6 +185,12 @@ export default function ArticlesTab() {
                 return (
                   <li key={a.id} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
                     <Checkbox checked={selected.includes(a.id)} onCheckedChange={() => toggle(a.id)} />
+                    <ArticleThumb
+                      src={(a as { imageUrl?: string | null }).imageUrl}
+                      alt=""
+                      className="hidden h-9 w-14 shrink-0 rounded-md sm:block"
+                      iconClassName="h-4 w-4"
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{a.title}</p>
                       <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">

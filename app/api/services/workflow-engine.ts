@@ -347,6 +347,105 @@ function isValidArticle(a: RawArticle): boolean {
   );
 }
 
+/** Extrahiert die YouTube-Video-ID aus einer URL (oder null). */
+function youtubeId(url: string): string | null {
+  const m =
+    url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+/** Liest og:image / twitter:image aus HTML (oder null). */
+function extractOgImage(html: string, baseUrl: string): string | null {
+  const patterns = [
+    /<meta[^>]+(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i,
+  ];
+  for (const re of patterns) {
+    const m = html.match(re);
+    if (m && m[1]) {
+      try {
+        return new URL(m[1], baseUrl).toString();
+      } catch {
+        return m[1];
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Prüft eine URL und liefert Erreichbarkeit + Vorschaubild in einem Aufruf.
+ * YouTube-Links bekommen das offizielle Thumbnail (ohne Seitenabruf).
+ */
+async function inspectUrl(url: string): Promise<{ ok: boolean; image: string | null }> {
+  const yt = youtubeId(url);
+  if (yt) return { ok: true, image: `https://img.youtube.com/vi/${yt}/hqdefault.jpg` };
+
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 6000);
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        redirect: "follow",
+        signal: ctrl.signal,
+        headers: { "user-agent": "Mozilla/5.0 (compatible; AI-Newsletter/1.0)" },
+      });
+      // Nur eindeutig fehlende Seiten gelten als "tot" (403/5xx = Bot-Schutz/temporär).
+      const ok = res.status !== 404 && res.status !== 410;
+      let image: string | null = null;
+      const ct = res.headers.get("content-type") ?? "";
+      if (ok && ct.includes("text/html")) {
+        const html = (await res.text()).slice(0, 600000);
+        image = extractOgImage(html, res.url || url);
+      }
+      return { ok, image };
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch {
+    return { ok: false, image: null }; // Timeout / DNS-Fehler / nicht erreichbar
+  }
+}
+
+/**
+ * Liefert eine möglichst echte, erreichbare Quelle + Vorschaubild für einen Artikel.
+ * Ist die vom Modell genannte URL tot, wird – falls vorhanden – auf eine echte
+ * Grounding-Quelle ausgewichen statt auf eine erfundene URL.
+ */
+async function resolveSource(
+  modelUrl: string,
+  modelName: string,
+  grounding: GroundingSource[],
+): Promise<{ url: string; name: string; image: string | null }> {
+  const insp = await inspectUrl(modelUrl);
+  if (insp.ok) {
+    return { url: modelUrl, name: modelName, image: insp.image };
+  }
+  const fallback = grounding.find((g) => g.url);
+  if (fallback) {
+    const fbInsp = await inspectUrl(fallback.url);
+    return { url: fallback.url, name: fallback.name || modelName, image: fbInsp.image };
+  }
+  return { url: modelUrl, name: modelName, image: insp.image };
+}
+
+/** Validiert das vom Modell gelieferte Veröffentlichungsdatum (sonst: jetzt). */
+function validPublishedAt(s?: string): Date {
+  if (s) {
+    const d = new Date(s);
+    const now = Date.now();
+    if (
+      !isNaN(d.getTime()) &&
+      d.getTime() > Date.parse("2000-01-01") &&
+      d.getTime() < now + 24 * 60 * 60 * 1000
+    ) {
+      return d;
+    }
+  }
+  return new Date();
+}
+
 // ── Der eigentliche Ausführer ──────────────────────────────────────
 async function runWorkflow(
   runId: number,
@@ -396,11 +495,20 @@ async function runWorkflow(
       const valid = rawArticles.filter(isValidArticle);
       totalFound += valid.length;
 
+      // Quellen-URLs prüfen: erreichbare Links behalten, tote durch echte
+      // Grounding-Quellen ersetzen (verhindert Links auf erfundene Seiten). Parallel.
+      const resolvedSources = await Promise.all(
+        valid.map((a) =>
+          resolveSource(a.sourceUrl!.trim(), a.sourceName ?? "Unbekannt", res.groundingSources),
+        ),
+      );
+
       let savedThisRep = 0;
-      for (const a of valid) {
+      for (let idx = 0; idx < valid.length; idx++) {
+        const a = valid[idx];
+        const src = resolvedSources[idx];
         const title = a.title!.trim();
-        const sourceUrl = a.sourceUrl!.trim();
-        const hash = hashContent(sourceUrl, title);
+        const hash = hashContent(src.url, title);
 
         if (knownTitles.includes(title) || (await isDuplicate(hash))) {
           totalDupes++;
@@ -417,7 +525,7 @@ async function runWorkflow(
         const tags = enrichTags(title, a.content ?? "", aiTags);
 
         // Quelle finden oder anlegen (für Rotations-Pool)
-        const sourceId = await upsertSource(a.sourceName ?? "Unbekannt", sourceUrl, category);
+        const sourceId = await upsertSource(src.name, src.url, category);
 
         try {
           await db.insert(schema.articles).values({
@@ -427,9 +535,10 @@ async function runWorkflow(
             summary: a.summary!,
             category,
             tags: JSON.stringify(tags),
-            sourceName: a.sourceName ?? "Unbekannt",
-            sourceUrl,
-            publishedAt: a.publishedAt ? new Date(a.publishedAt) : new Date(),
+            sourceName: src.name,
+            sourceUrl: src.url,
+            imageUrl: src.image,
+            publishedAt: validPublishedAt(a.publishedAt),
             contentHash: hash,
             status: "draft",
             relevanceScore: typeof a.relevanceScore === "number" ? a.relevanceScore : 50,
