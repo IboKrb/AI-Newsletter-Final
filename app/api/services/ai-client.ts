@@ -23,6 +23,57 @@ export interface ResearchOptions {
 }
 
 /**
+ * Globale Serialisierung + Mindestabstand für echte KI-Aufrufe.
+ * Verhindert, dass parallele Läufe (z.B. "Alle ausführen") das
+ * Gemini-Free-Tier-Ratenlimit (429) sofort sprengen.
+ */
+const MIN_AI_INTERVAL_MS = 6000;
+let aiQueue: Promise<unknown> = Promise.resolve();
+let lastAiCallAt = 0;
+
+function rateLimited<T>(fn: () => Promise<T>): Promise<T> {
+  const run = aiQueue.then(async () => {
+    const wait = MIN_AI_INTERVAL_MS - (Date.now() - lastAiCallAt);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    try {
+      return await fn();
+    } finally {
+      lastAiCallAt = Date.now();
+    }
+  });
+  aiQueue = run.catch(() => undefined);
+  return run;
+}
+
+/**
+ * Repariert in JSON-Strings enthaltene rohe Steuerzeichen (echte Zeilenumbrüche,
+ * Tabs etc.), die `JSON.parse` sonst mit "Bad control character" abbrechen lassen.
+ */
+function sanitizeJsonControlChars(s: string): string {
+  let out = "";
+  let inStr = false;
+  let esc = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    const code = s.charCodeAt(i);
+    if (inStr) {
+      if (esc) { out += c; esc = false; continue; }
+      if (c === "\\") { out += c; esc = true; continue; }
+      if (c === '"') { out += c; inStr = false; continue; }
+      if (code < 0x20) {
+        out += c === "\n" ? "\\n" : c === "\r" ? "\\r" : c === "\t" ? "\\t" : "\\u" + code.toString(16).padStart(4, "0");
+        continue;
+      }
+      out += c;
+    } else {
+      if (c === '"') { inStr = true; }
+      out += c;
+    }
+  }
+  return out;
+}
+
+/**
  * Abstrakter KI-Provider. Unterstützt Google Gemini (mit Web-Grounding),
  * OpenAI-kompatible APIs und einen Mock-Provider für lokale Tests.
  */
@@ -55,17 +106,24 @@ abstract class AiProvider {
 
   /** Extrahiert JSON aus einem (ggf. mit Prosa umgebenen) KI-Text. */
   extractJson(text: string): unknown {
+    const candidates: string[] = [];
     const blockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-    if (blockMatch) {
-      try {
-        return JSON.parse(blockMatch[1]);
-      } catch {
-        /* weiter zum Fallback */
-      }
-    }
+    if (blockMatch) candidates.push(blockMatch[1]);
     const plainMatch = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-    if (plainMatch) {
-      return JSON.parse(plainMatch[1]);
+    if (plainMatch) candidates.push(plainMatch[1]);
+    candidates.push(text);
+
+    for (const c of candidates) {
+      try {
+        return JSON.parse(c);
+      } catch {
+        // Zweiter Versuch: rohe Steuerzeichen in Strings escapen
+        try {
+          return JSON.parse(sanitizeJsonControlChars(c));
+        } catch {
+          /* nächster Kandidat */
+        }
+      }
     }
     throw new Error("Kein gültiges JSON in der KI-Antwort gefunden");
   }
@@ -122,19 +180,21 @@ class OpenAiCompatibleProvider extends AiProvider {
       { role: "user" as const, content: userPrompt },
     ];
 
-    const { body } = await this.fetchWithRetry(`${this.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages,
-        temperature: opts.temperature ?? 0.7,
-        max_tokens: 8192,
+    const { body } = await rateLimited(() =>
+      this.fetchWithRetry(`${this.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages,
+          temperature: opts.temperature ?? 0.7,
+          max_tokens: 8192,
+        }),
       }),
-    });
+    );
 
     const data = JSON.parse(body) as { choices?: Array<{ message?: { content?: string } }> };
     const content = data.choices?.[0]?.message?.content;
@@ -175,11 +235,13 @@ class GeminiProvider extends AiProvider {
       requestBody.tools = [{ google_search: {} }];
     }
 
-    const { body } = await this.fetchWithRetry(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(requestBody),
-    });
+    const { body } = await rateLimited(() =>
+      this.fetchWithRetry(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      }),
+    );
 
     const data = JSON.parse(body) as {
       candidates?: Array<{

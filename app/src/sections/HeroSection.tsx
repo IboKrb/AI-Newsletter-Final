@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/providers/trpc";
 import { Zap, ArrowRight, Sparkles, Globe, TrendingUp, BookOpen } from "lucide-react";
-import { staticIssue } from "@/data/staticData";
 
 export default function HeroSection() {
   const [email, setEmail] = useState("");
@@ -19,12 +18,12 @@ export default function HeroSection() {
     setEmail("");
   };
 
-  const { data: issue } = trpc.newsletter.getLatest.useQuery();
-  const activeIssue = issue || staticIssue;
+  // Aktuelle veröffentlichte Artikel für die Übersicht (echte Daten)
+  const { data: latest } = trpc.newsletter.listPublishedArticles.useQuery({ limit: 5, offset: 0 });
+  const highlights = latest?.articles ?? [];
 
   return (
     <section className="relative overflow-hidden border-b border-border">
-      {/* dezente Akzent-Glows */}
       <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-emerald-300/30 blur-3xl" />
       <div className="pointer-events-none absolute -right-16 top-10 h-72 w-72 rounded-full bg-teal-300/20 blur-3xl" />
 
@@ -32,23 +31,22 @@ export default function HeroSection() {
         <div className="grid gap-12 md:grid-cols-2 md:items-center">
           <div className="animate-slide-up">
             <Badge variant="outline" className="mb-4 border-emerald-200 bg-emerald-50 text-emerald-700">
-              <Sparkles className="mr-1 h-3 w-3" />
-              Issue #{activeIssue?.issueNumber || 1} – Juni 2026
+              <Sparkles className="mr-1 h-3 w-3" /> Automatisiert recherchiert mit KI
             </Badge>
             <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
               Dein <span className="text-brand-gradient">AI Newsletter</span> der Woche
             </h1>
             <p className="mt-4 max-w-lg text-lg text-muted-foreground">
-              {activeIssue?.summary ||
-                "Curated KI-News aus 5 führenden Quellen, Tool-Empfehlungen, Prompts, Tutorials und mehr – komplett automatisiert recherchiert."}
+              Curated KI-News, Tools, Prompts, Tutorials und mehr — wöchentlich automatisch aus
+              führenden Quellen recherchiert und kuratiert.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
               {[
-                { icon: Globe, label: "5 News-Quellen" },
-                { icon: TrendingUp, label: "ProductHunt Tools" },
+                { icon: Globe, label: "Top-Quellen" },
+                { icon: TrendingUp, label: "Neue Tools" },
                 { icon: Zap, label: "Prompt der Woche" },
-                { icon: BookOpen, label: "Deep Dive Tutorials" },
+                { icon: BookOpen, label: "Deep Dives" },
               ].map((item) => (
                 <div
                   key={item.label}
@@ -89,26 +87,26 @@ export default function HeroSection() {
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-gradient">
                   <Zap className="h-3.5 w-3.5 text-white" />
                 </div>
-                <span className="text-sm font-semibold">Diese Woche im Überblick</span>
+                <span className="text-sm font-semibold">Aktuell im Newsletter</span>
               </div>
               <div className="mt-4 space-y-3">
-                {[
-                  "OpenAI plant AI-Smartphone",
-                  "Google Workspace AI Upgrade",
-                  "DeepSeek-V4: Frontier zum Bruchteil",
-                  "MIT: 10 Things That Matter in AI",
-                  "Microsoft/OpenAI Deal beendet",
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-background/60 p-3 transition-colors hover:border-emerald-200"
-                  >
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
-                      {i + 1}
-                    </span>
-                    <span className="text-sm text-foreground/80">{item}</span>
-                  </div>
-                ))}
+                {highlights.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    Noch keine veröffentlichten Artikel.
+                  </p>
+                ) : (
+                  highlights.map((a, i) => (
+                    <div
+                      key={a.id}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-background/60 p-3 transition-colors hover:border-emerald-200"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
+                        {i + 1}
+                      </span>
+                      <span className="line-clamp-1 text-sm text-foreground/80">{a.title}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

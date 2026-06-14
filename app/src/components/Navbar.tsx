@@ -44,7 +44,7 @@ export default function Navbar({
               { label: "News", id: "news" },
               { label: "Tools", id: "tools" },
               { label: "Prompts", id: "prompts" },
-              { label: "Tutorial", id: "tutorial" },
+              { label: "Tutorials", id: "tutorials" },
               { label: "Podcasts", id: "podcasts" },
               { label: "Reads", id: "reads" },
             ].map((item) => (
@@ -109,7 +109,7 @@ export default function Navbar({
                 { label: "News", id: "news" },
                 { label: "Tools", id: "tools" },
                 { label: "Prompts", id: "prompts" },
-                { label: "Tutorial", id: "tutorial" },
+                { label: "Tutorials", id: "tutorials" },
                 { label: "Podcasts", id: "podcasts" },
                 { label: "Reads", id: "reads" },
               ].map((item) => (
