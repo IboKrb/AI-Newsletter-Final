@@ -26,6 +26,19 @@ const WEEKDAYS = [
   { value: 0, label: "Sonntag" },
 ];
 
+// Auswählbare Gemini-Modelle (alle mit Google-Search-Grounding nutzbar).
+const MODEL_OPTIONS = [
+  { value: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite — empfohlen (hohes Tageslimit)" },
+  { value: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+  { value: "gemini-3-flash", label: "Gemini 3 Flash" },
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro (stärker, niedrigeres Limit)" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+  { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
+  { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+  { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite" },
+];
+const CUSTOM_MODEL = "__custom__";
+
 export default function SettingsTab() {
   const utils = trpc.useUtils();
   const { data: settings } = trpc.workflow.getSettings.useQuery();
@@ -109,14 +122,29 @@ export default function SettingsTab() {
 
           <div className="space-y-2">
             <Label htmlFor="model">Modell</Label>
-            <Input
-              id="model"
-              placeholder="gemini-3.1-flash-lite"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-            />
+            <Select
+              value={MODEL_OPTIONS.some((m) => m.value === model) ? model : CUSTOM_MODEL}
+              onValueChange={(v) => setModel(v === CUSTOM_MODEL ? "" : v)}
+            >
+              <SelectTrigger id="model">
+                <SelectValue placeholder="Modell wählen" />
+              </SelectTrigger>
+              <SelectContent>
+                {MODEL_OPTIONS.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                ))}
+                <SelectItem value={CUSTOM_MODEL}>Benutzerdefiniert…</SelectItem>
+              </SelectContent>
+            </Select>
+            {!MODEL_OPTIONS.some((m) => m.value === model) && (
+              <Input
+                placeholder="z.B. gemini-3.1-flash-lite"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+              />
+            )}
             <p className="text-xs text-muted-foreground">
-              Empfohlen für Free-Tier + Grounding: <code>gemini-3.1-flash-lite</code>
+              Empfohlen: <code>gemini-3.1-flash-lite</code>. Bei Unbekannt → „Benutzerdefiniert" + exakte ID aus Google AI Studio.
             </p>
           </div>
 
