@@ -41,7 +41,7 @@ export default function SettingsTab() {
 
   useEffect(() => {
     if (settings) {
-      setModel(settings.model || "gemini-2.5-flash");
+      setModel(settings.model || "gemini-2.5-flash-lite");
       setGrounding(settings.grounding);
       setTestMode(settings.testMode);
       setCronEnabled(settings.cronEnabled);
@@ -111,12 +111,12 @@ export default function SettingsTab() {
             <Label htmlFor="model">Modell</Label>
             <Input
               id="model"
-              placeholder="gemini-2.5-flash"
+              placeholder="gemini-2.5-flash-lite"
               value={model}
               onChange={(e) => setModel(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Empfohlen für Free-Tier + Grounding: <code>gemini-2.5-flash</code>
+              Empfohlen für Free-Tier + Grounding: <code>gemini-2.5-flash-lite</code>
             </p>
           </div>
 

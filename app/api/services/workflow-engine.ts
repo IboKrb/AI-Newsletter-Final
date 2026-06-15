@@ -793,7 +793,7 @@ export async function seedDefaults(): Promise<void> {
         description: `Standard-Workflow für ${CATEGORY_LABELS[category]} mit Web-Grounding.`,
         systemPrompt: p.system,
         userPrompt: p.user,
-        repetitions: 2,
+        repetitions: 1,
         maxArticles: 10,
         useGrounding: true,
         isActive: category === "news", // nur News standardmäßig aktiv (Cron)

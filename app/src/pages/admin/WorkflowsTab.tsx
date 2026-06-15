@@ -39,7 +39,7 @@ const EMPTY: TemplateForm = {
   name: "", category: "news", description: "",
   systemPrompt: "Du bist ein erfahrener KI-Newsletter-Redakteur. Recherchiere sorgfältig im Web und erfinde niemals Quellen.",
   userPrompt: "Recherchiere die wichtigsten und aktuellsten Inhalte der letzten Woche.",
-  repetitions: 2, maxArticles: 10, useGrounding: true, autoPublish: true, isActive: true,
+  repetitions: 1, maxArticles: 10, useGrounding: true, autoPublish: true, isActive: true,
 };
 
 export default function WorkflowsTab({ onGoToRuns }: { onGoToRuns: () => void }) {
