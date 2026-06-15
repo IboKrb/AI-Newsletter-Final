@@ -16,7 +16,7 @@ export const env = {
   // ── KI-API (OPTIONAL — kann auch in der Admin-UI gesetzt werden) ──
   aiApiKey: process.env.AI_API_KEY ?? "",
   aiBaseUrl: process.env.AI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta",
-  aiModel: process.env.AI_MODEL || "gemini-2.5-flash-lite",
+  aiModel: process.env.AI_MODEL || "gemini-3.1-flash-lite",
   // ── Debug/Test Modus ──
   isTestMode: process.env.TEST_MODE === "true",
 };

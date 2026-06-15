@@ -416,7 +416,7 @@ export async function getAiClient(): Promise<AiProvider> {
     cfg.baseUrl.includes("googleapis") || cfg.baseUrl.includes("generativelanguage");
 
   return isGemini
-    ? new GeminiProvider(cfg.apiKey, cfg.baseUrl, cfg.model || "gemini-2.5-flash-lite")
+    ? new GeminiProvider(cfg.apiKey, cfg.baseUrl, cfg.model || "gemini-3.1-flash-lite")
     : new OpenAiCompatibleProvider(cfg.apiKey, cfg.baseUrl, cfg.model);
 }
 
