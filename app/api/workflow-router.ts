@@ -32,9 +32,10 @@ export const workflowRouter = createRouter({
         description: z.string().optional(),
         systemPrompt: z.string().min(1),
         userPrompt: z.string().min(1),
-        repetitions: z.number().int().min(1).max(10).default(3),
+        repetitions: z.number().int().min(1).max(10).default(2),
         maxArticles: z.number().int().min(1).max(50).default(10),
         useGrounding: z.boolean().default(true),
+        autoPublish: z.boolean().default(true),
         isActive: z.boolean().default(true),
       }),
     )
@@ -52,6 +53,7 @@ export const workflowRouter = createRouter({
         repetitions: z.number().int().min(1).max(10).optional(),
         maxArticles: z.number().int().min(1).max(50).optional(),
         useGrounding: z.boolean().optional(),
+        autoPublish: z.boolean().optional(),
         isActive: z.boolean().optional(),
       }),
     )

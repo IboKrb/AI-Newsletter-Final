@@ -361,6 +361,8 @@ export const workflowTemplates = pgTable("workflow_templates", {
   repetitions: integer("repetitions").default(3).notNull(),
   maxArticles: integer("max_articles").default(10).notNull(),
   useGrounding: boolean("use_grounding").default(true).notNull(),
+  // Ergebnisse automatisch veröffentlichen (true) oder als Entwurf zur Freigabe (false)
+  autoPublish: boolean("auto_publish").default(true).notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date()),

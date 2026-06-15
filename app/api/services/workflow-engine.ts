@@ -159,9 +159,42 @@ async function log(
   });
 }
 
+// ── Run-Warteschlange: Läufe strikt nacheinander ausführen ───────
+// Verhindert, dass mehrere Workflows gleichzeitig Gemini anfragen
+// (vermeidet 503 "high demand" / Überlastung beim "Alle starten").
+const runQueue: Array<() => Promise<void>> = [];
+let queueRunning = false;
+
+async function processQueue() {
+  if (queueRunning) return;
+  queueRunning = true;
+  try {
+    while (runQueue.length > 0) {
+      const task = runQueue.shift()!;
+      try {
+        await task();
+      } catch (err) {
+        console.error("[Queue] Lauf-Fehler:", err);
+      }
+    }
+  } finally {
+    queueRunning = false;
+  }
+}
+
+function enqueueRun(task: () => Promise<void>) {
+  runQueue.push(task);
+  void processQueue();
+}
+
+/** Anzahl wartender (noch nicht gestarteter) Läufe in der Warteschlange. */
+export function queueLength(): number {
+  return runQueue.length;
+}
+
 /**
- * Startet einen Durchlauf für ein Template. Plant die Quellen und führt den
- * Lauf asynchron aus (Fortschritt wird in der DB aktualisiert, UI pollt).
+ * Startet einen Durchlauf für ein Template. Plant die Quellen und reiht den
+ * Lauf in die Warteschlange ein (läuft nacheinander; Fortschritt in der DB, UI pollt).
  */
 export async function startRun(
   templateId: number,
@@ -231,18 +264,20 @@ export async function startRun(
       .where(inArray(schema.sources.id, planned.map((p) => p.id)));
   }
 
-  // Asynchron ausführen (nicht awaiten)
-  void runWorkflow(run.id, template, planned).catch(async (err) => {
-    console.error(`[Workflow] Lauf #${run.id} fataler Fehler:`, err);
-    await db
-      .update(schema.workflowRuns)
-      .set({
-        status: "failed",
-        finishedAt: new Date(),
-        errorMessage: err instanceof Error ? err.message : String(err),
-      })
-      .where(eq(schema.workflowRuns.id, run.id));
-  });
+  // In die Warteschlange einreihen – Läufe werden nacheinander ausgeführt
+  enqueueRun(() =>
+    runWorkflow(run.id, template, planned).catch(async (err) => {
+      console.error(`[Workflow] Lauf #${run.id} fataler Fehler:`, err);
+      await db
+        .update(schema.workflowRuns)
+        .set({
+          status: "failed",
+          finishedAt: new Date(),
+          errorMessage: err instanceof Error ? err.message : String(err),
+        })
+        .where(eq(schema.workflowRuns.id, run.id));
+    }),
+  );
 
   return run.id;
 }
@@ -559,7 +594,7 @@ async function runWorkflow(
             imageUrl: src.image,
             publishedAt: validPublishedAt(a.publishedAt),
             contentHash: hash,
-            status: "draft",
+            status: template.autoPublish ? "published" : "draft",
             relevanceScore: typeof a.relevanceScore === "number" ? a.relevanceScore : 50,
             aiModel: cfg.model,
             aiProcessedAt: new Date(),
@@ -593,6 +628,17 @@ async function runWorkflow(
         rep,
         { found: valid.length, saved: savedThisRep, sources: res.groundingSources.length },
       );
+
+      // Früher Abbruch: genug Artikel gesammelt → restliche Wiederholungen sparen (schont das Kontingent)
+      if (totalSaved >= template.maxArticles) {
+        await log(
+          runId,
+          "info",
+          `Genügend Artikel gesammelt (${totalSaved}/${template.maxArticles}) – weitere Wiederholungen übersprungen.`,
+          rep,
+        );
+        break;
+      }
     } catch (err) {
       repsWithError++;
       const msg = err instanceof Error ? err.message : String(err);
@@ -747,7 +793,7 @@ export async function seedDefaults(): Promise<void> {
         description: `Standard-Workflow für ${CATEGORY_LABELS[category]} mit Web-Grounding.`,
         systemPrompt: p.system,
         userPrompt: p.user,
-        repetitions: 3,
+        repetitions: 2,
         maxArticles: 10,
         useGrounding: true,
         isActive: category === "news", // nur News standardmäßig aktiv (Cron)

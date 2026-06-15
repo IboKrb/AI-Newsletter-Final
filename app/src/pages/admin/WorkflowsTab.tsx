@@ -16,7 +16,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Plus, Play, Pencil, Trash2, Workflow, Repeat, Globe2, Sparkles, Rocket, Star,
+  Plus, Play, Pencil, Trash2, Workflow, Repeat, Globe2, Sparkles, Rocket, Star, Send,
 } from "lucide-react";
 import { CATEGORIES, CATEGORY_LABEL } from "./constants";
 import RunDetail from "./RunDetail";
@@ -31,6 +31,7 @@ type TemplateForm = {
   repetitions: number;
   maxArticles: number;
   useGrounding: boolean;
+  autoPublish: boolean;
   isActive: boolean;
 };
 
@@ -38,7 +39,7 @@ const EMPTY: TemplateForm = {
   name: "", category: "news", description: "",
   systemPrompt: "Du bist ein erfahrener KI-Newsletter-Redakteur. Recherchiere sorgfältig im Web und erfinde niemals Quellen.",
   userPrompt: "Recherchiere die wichtigsten und aktuellsten Inhalte der letzten Woche.",
-  repetitions: 3, maxArticles: 10, useGrounding: true, isActive: true,
+  repetitions: 2, maxArticles: 10, useGrounding: true, autoPublish: true, isActive: true,
 };
 
 export default function WorkflowsTab({ onGoToRuns }: { onGoToRuns: () => void }) {
@@ -99,7 +100,7 @@ export default function WorkflowsTab({ onGoToRuns }: { onGoToRuns: () => void })
       name: edit.name, category: edit.category as never, description: edit.description,
       systemPrompt: edit.systemPrompt, userPrompt: edit.userPrompt,
       repetitions: edit.repetitions, maxArticles: edit.maxArticles,
-      useGrounding: edit.useGrounding, isActive: edit.isActive,
+      useGrounding: edit.useGrounding, autoPublish: edit.autoPublish, isActive: edit.isActive,
     };
     if (edit.id) update.mutate({ id: edit.id, ...payload });
     else create.mutate(payload);
@@ -156,6 +157,13 @@ export default function WorkflowsTab({ onGoToRuns }: { onGoToRuns: () => void })
                     <Globe2 className="h-3 w-3" /> Grounding
                   </Badge>
                 )}
+                {t.autoPublish ? (
+                  <Badge variant="outline" className="gap-1 border-teal-200 bg-teal-50 text-teal-700">
+                    <Send className="h-3 w-3" /> Auto-Publish
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground">Entwurf</Badge>
+                )}
                 {t.isActive ? (
                   <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700">aktiv</Badge>
                 ) : (
@@ -174,7 +182,7 @@ export default function WorkflowsTab({ onGoToRuns }: { onGoToRuns: () => void })
                 <Button size="sm" variant="ghost" onClick={() => setEdit({
                   id: t.id, name: t.name, category: t.category, description: t.description ?? "",
                   systemPrompt: t.systemPrompt, userPrompt: t.userPrompt, repetitions: t.repetitions,
-                  maxArticles: t.maxArticles, useGrounding: t.useGrounding, isActive: t.isActive,
+                  maxArticles: t.maxArticles, useGrounding: t.useGrounding, autoPublish: t.autoPublish, isActive: t.isActive,
                 })}>
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -232,12 +240,22 @@ export default function WorkflowsTab({ onGoToRuns }: { onGoToRuns: () => void })
                   <Label>Wiederholungen</Label>
                   <Input type="number" min={1} max={10} value={edit.repetitions}
                     onChange={(e) => setEdit({ ...edit, repetitions: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">1–2 empfohlen – schont das Gemini-Free-Tier.</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Max. Artikel / Durchlauf</Label>
                   <Input type="number" min={1} max={50} value={edit.maxArticles}
                     onChange={(e) => setEdit({ ...edit, maxArticles: Number(e.target.value) })} />
                 </div>
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 p-3">
+                <div>
+                  <p className="text-sm font-medium">Automatisch veröffentlichen</p>
+                  <p className="text-xs text-muted-foreground">
+                    An: Ergebnisse gehen sofort live. Aus: als Entwurf zur manuellen Freigabe.
+                  </p>
+                </div>
+                <Switch checked={edit.autoPublish} onCheckedChange={(v) => setEdit({ ...edit, autoPublish: v })} />
               </div>
               <div className="flex gap-3">
                 <div className="flex flex-1 items-center justify-between rounded-xl border border-border p-3">

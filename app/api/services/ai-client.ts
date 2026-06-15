@@ -131,34 +131,50 @@ abstract class AiProvider {
   protected async fetchWithRetry(
     url: string,
     options: { method: string; headers: Record<string, string>; body: string },
-    maxRetries = 3,
+    maxRetries = 4,
   ): Promise<{ statusCode: number; body: string }> {
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const expDelay = (attempt: number) =>
+      Math.min(3000 * 2 ** (attempt - 1), 24000) + Math.floor(Math.random() * 1500);
     let lastError: Error | undefined;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 90000); // 90s Request-Timeout
       try {
         const res = await fetch(url, {
           method: options.method,
           headers: options.headers,
           body: options.body,
+          signal: ctrl.signal,
         });
-        const responseBody = await res.text();
-        const statusCode = res.status;
+        const body = await res.text();
 
-        if (statusCode >= 400) {
-          // 4xx (außer 429) sind nicht retry-bar
-          if (statusCode !== 429 && statusCode < 500) {
-            throw new Error(`API ${statusCode}: ${responseBody.slice(0, 400)}`);
-          }
-          throw new Error(`API ${statusCode} (retry): ${responseBody.slice(0, 200)}`);
+        if (res.status < 400) return { statusCode: res.status, body };
+
+        // 4xx außer 429 = nicht retry-bar
+        if (res.status !== 429 && res.status < 500) {
+          throw new Error(`API ${res.status}: ${body.slice(0, 400)}`);
         }
-        return { statusCode, body: responseBody };
+        // 429 / 5xx (z.B. 503 "high demand") = retry-bar
+        lastError = new Error(`API ${res.status} (retry): ${body.slice(0, 200)}`);
+        if (attempt >= maxRetries) break;
+
+        let delay = expDelay(attempt);
+        if (res.status === 429) {
+          // Googles vorgeschlagene Wartezeit respektieren (retryDelay: "26s")
+          const m = body.match(/"retryDelay":\s*"(\d+(?:\.\d+)?)s"/);
+          if (m) delay = Math.min(Math.ceil(parseFloat(m[1]) * 1000) + 500, 50000);
+        }
+        await sleep(delay);
       } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err));
-        const nonRetryable = /API 4\d\d:/.test(lastError.message);
-        if (nonRetryable || attempt >= maxRetries) break;
-        const delay = Math.min(1000 * 2 ** attempt, 10000);
-        await new Promise((r) => setTimeout(r, delay));
+        const e = err instanceof Error ? err : new Error(String(err));
+        if (/API 4\d\d:/.test(e.message)) throw e; // nicht retry-bar
+        lastError = e; // Netzwerkfehler / Timeout
+        if (attempt >= maxRetries) break;
+        await sleep(expDelay(attempt));
+      } finally {
+        clearTimeout(timer);
       }
     }
     throw lastError ?? new Error("Unbekannter KI-Fehler nach Retries");
@@ -246,11 +262,13 @@ class GeminiProvider extends AiProvider {
     const data = JSON.parse(body) as {
       candidates?: Array<{
         content?: { parts?: Array<{ text?: string }> };
+        finishReason?: string;
         groundingMetadata?: {
           groundingChunks?: Array<{ web?: { uri?: string; title?: string } }>;
           webSearchQueries?: string[];
         };
       }>;
+      promptFeedback?: { blockReason?: string };
       error?: { message?: string };
     };
 
@@ -260,7 +278,10 @@ class GeminiProvider extends AiProvider {
 
     const candidate = data.candidates?.[0];
     const content = candidate?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";
-    if (!content) throw new Error("Gemini lieferte leeren Inhalt");
+    if (!content) {
+      const reason = candidate?.finishReason ?? data.promptFeedback?.blockReason ?? "unbekannt";
+      throw new Error(`Gemini lieferte leeren Inhalt (Grund: ${reason})`);
+    }
 
     const groundingSources: GroundingSource[] = [];
     for (const chunk of candidate?.groundingMetadata?.groundingChunks ?? []) {
