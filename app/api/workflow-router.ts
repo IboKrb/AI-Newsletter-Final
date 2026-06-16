@@ -146,6 +146,12 @@ export const workflowRouter = createRouter({
     return { runIds, total: templates.length };
   }),
 
+  // Artikel älter als 7 Tage manuell archivieren (sonst täglich automatisch)
+  archiveOld: adminQuery.mutation(async () => {
+    const archived = await engine.archiveOldArticles(7);
+    return { archived };
+  }),
+
   cancelRun: adminQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input }) => {

@@ -1,5 +1,28 @@
 import { CronJob } from "cron";
-import { runAllActiveTemplates } from "./workflow-engine";
+import { runAllActiveTemplates, archiveOldArticles } from "./workflow-engine";
+
+/**
+ * Täglicher Job (05:00 Europe/Berlin): Artikel älter als 7 Tage archivieren.
+ * → verschwinden von der Startseite, bleiben in der Bibliothek.
+ */
+export function startDailyArchiveJob() {
+  const job = new CronJob(
+    "0 5 * * *",
+    async () => {
+      try {
+        const n = await archiveOldArticles(7);
+        console.log(`[Cron] Archivierung: ${n} Artikel auf 'archived' gesetzt.`);
+      } catch (err) {
+        console.error("[Cron] Archivierung fehlgeschlagen:", err);
+      }
+    },
+    null,
+    true,
+    "Europe/Berlin",
+  );
+  console.log("[Scheduler] Täglicher Archivierungs-Job aktiv (05:00, Europe/Berlin)");
+  return job;
+}
 import { getCronConfig } from "./settings";
 
 let currentJob: CronJob | null = null;

@@ -59,6 +59,7 @@ export default function Library() {
   const { data: publishedData, isLoading: publishedLoading } =
     trpc.newsletter.listPublishedArticles.useQuery({
       category: selectedCategory !== "all" ? (selectedCategory as never) || undefined : undefined,
+      includeArchived: true,
       limit,
       offset: page * limit,
     });
@@ -70,6 +71,7 @@ export default function Library() {
         query: searchQuery,
         category: selectedCategory !== "all" ? (selectedCategory as never) || undefined : undefined,
         tags: selectedTag !== "all" ? (selectedTag ? [selectedTag] : undefined) : undefined,
+        includeArchived: true,
         limit,
         offset: page * limit,
       },
@@ -78,7 +80,7 @@ export default function Library() {
 
   // Kategorie-Liste (wenn keine Suche aber Kategorie gewählt)
   const { data: categoryResults } = trpc.newsletter.listByCategory.useQuery(
-    { category: selectedCategory !== "all" ? (selectedCategory as any) : undefined, limit, offset: page * limit },
+    { category: selectedCategory !== "all" ? (selectedCategory as any) : undefined, includeArchived: true, limit, offset: page * limit },
     { enabled: !searchQuery && selectedCategory !== "all" && selectedCategory.length > 0 && !publishedData }
   );
 

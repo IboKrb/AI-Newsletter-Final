@@ -5,8 +5,8 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "./router";
 import { createContext } from "./context";
 import { env } from "./lib/env";
-import { startWeeklyCronjob } from "./services/scheduler";
-import { seedDefaults } from "./services/workflow-engine";
+import { startWeeklyCronjob, startDailyArchiveJob } from "./services/scheduler";
+import { seedDefaults, archiveOldArticles } from "./services/workflow-engine";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -30,9 +30,11 @@ export default app;
 // Default-Templates & Standard-Quellen sicherstellen (idempotent).
 // Läuft in Dev (via Vite) und Prod; Fehler (z.B. fehlende Tabellen vor db:push)
 // werden geloggt, blockieren den Start aber nicht.
-void seedDefaults().catch((err) => {
-  console.warn("[Seed] Übersprungen/fehlgeschlagen:", err instanceof Error ? err.message : err);
-});
+void seedDefaults()
+  .then(() => archiveOldArticles(7)) // Catch-up: alte Artikel direkt beim Start archivieren
+  .catch((err) => {
+    console.warn("[Boot] Seed/Archiv übersprungen/fehlgeschlagen:", err instanceof Error ? err.message : err);
+  });
 
 if (env.isProduction) {
   const { serve } = await import("@hono/node-server");
@@ -46,4 +48,6 @@ if (env.isProduction) {
 
   // Wöchentlichen Cronjob starten (liest Planung aus den Einstellungen)
   void startWeeklyCronjob();
+  // Täglicher Archivierungs-Job (Artikel > 7 Tage → Bibliothek)
+  startDailyArchiveJob();
 }

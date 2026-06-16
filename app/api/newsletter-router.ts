@@ -496,13 +496,16 @@ export const newsletterRouter = createRouter({
       dateFrom: z.string().optional(),
       dateTo: z.string().optional(),
       tags: z.array(z.string()).optional(),
+      includeArchived: z.boolean().optional(),
       limit: z.number().default(20),
       offset: z.number().default(0),
     }))
     .query(async ({ input }) => {
       const db = getDb();
       const conditions = [
-        eq(articles.status, "published"),
+        input.includeArchived
+          ? inArray(articles.status, ["published", "archived"])
+          : eq(articles.status, "published"),
       ];
 
       // Volltextsuche über title + summary + content
@@ -543,13 +546,18 @@ export const newsletterRouter = createRouter({
   listPublishedArticles: publicQuery
     .input(z.object({
       category: z.enum(["news", "tools", "prompts", "tutorials", "podcasts", "videos", "reads", "image_gen"]).optional(),
+      includeArchived: z.boolean().optional(),
       limit: z.number().default(25),
       offset: z.number().default(0),
     }).optional())
     .query(async ({ input }) => {
       const db = getDb();
       const opts = input ?? ({} as NonNullable<typeof input>);
-      const conditions = [eq(articles.status, "published")];
+      const conditions = [
+        opts.includeArchived
+          ? inArray(articles.status, ["published", "archived"])
+          : eq(articles.status, "published"),
+      ];
 
       if (opts.category) conditions.push(eq(articles.category, opts.category));
 
@@ -573,15 +581,21 @@ export const newsletterRouter = createRouter({
   listByCategory: publicQuery
     .input(z.object({
       category: z.enum(["news", "tools", "prompts", "tutorials", "podcasts", "videos", "reads", "image_gen"]),
+      includeArchived: z.boolean().optional(),
       limit: z.number().default(20),
       offset: z.number().default(0),
     }))
     .query(async ({ input }) => {
       const db = getDb();
+      const statusCond = input.includeArchived
+        ? inArray(articles.status, ["published", "archived"])
+        : eq(articles.status, "published");
+      const whereClause = and(eq(articles.category, input.category), statusCond)!;
+
       const rows = await db
         .select()
         .from(articles)
-        .where(and(eq(articles.category, input.category), eq(articles.status, "published")))
+        .where(whereClause)
         .orderBy(desc(articles.publishedAt))
         .limit(input.limit)
         .offset(input.offset);
@@ -589,7 +603,7 @@ export const newsletterRouter = createRouter({
       const countResult = await db
         .select({ count: sql`count(*)` })
         .from(articles)
-        .where(and(eq(articles.category, input.category), eq(articles.status, "published")));
+        .where(whereClause);
 
       return { articles: rows, total: Number(countResult[0]?.count ?? 0) };
     }),

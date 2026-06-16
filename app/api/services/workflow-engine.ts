@@ -776,6 +776,29 @@ function defaultPrompts(category: Category): { system: string; user: string } {
   };
 }
 
+/**
+ * Setzt veröffentlichte Artikel, die älter als `days` Tage sind, auf "archived".
+ * Sie verschwinden damit von der Startseite, bleiben aber in der Bibliothek sichtbar.
+ * @returns Anzahl archivierter Artikel
+ */
+export async function archiveOldArticles(days = 7): Promise<number> {
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const result = await getDb()
+    .update(schema.articles)
+    .set({ status: "archived" })
+    .where(
+      and(
+        eq(schema.articles.status, "published"),
+        sql`${schema.articles.publishedAt} < ${cutoff}`,
+      ),
+    )
+    .returning({ id: schema.articles.id });
+  if (result.length > 0) {
+    console.log(`[Archiv] ${result.length} Artikel (älter als ${days} Tage) archiviert.`);
+  }
+  return result.length;
+}
+
 /** Legt beim ersten Start Default-Templates und Standard-Quellen an (idempotent). */
 export async function seedDefaults(): Promise<void> {
   const db = getDb();
