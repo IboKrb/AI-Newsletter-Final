@@ -1,15 +1,60 @@
 import * as cookie from "cookie";
 import { z } from "zod";
-import { Session } from "@contracts/constants";
+import { TRPCError } from "@trpc/server";
+import { Demo, Session } from "@contracts/constants";
+import type { User } from "@db/schema";
 import { getSessionCookieOptions } from "./lib/cookies";
 import { createRouter, publicQuery, authedQuery } from "./middleware";
+import type { TrpcContext } from "./context";
 import { signSessionToken } from "./auth/session";
 import { verifyPassword } from "./auth/password";
 import { findUserByUsername, upsertUser } from "./queries/users";
 import { env } from "./lib/env";
 
+async function setSessionCookie(ctx: TrpcContext, user: User) {
+  const token = await signSessionToken({
+    userId: user.id,
+    username: user.username,
+    role: user.role,
+  });
+  const opts = getSessionCookieOptions(ctx.req.headers);
+  ctx.resHeaders.append(
+    "set-cookie",
+    cookie.serialize(Session.cookieName, token, {
+      httpOnly: opts.httpOnly,
+      path: opts.path,
+      sameSite: opts.sameSite?.toLowerCase() as "lax" | "none",
+      secure: opts.secure,
+      maxAge: Session.maxAgeMs / 1000,
+    }),
+  );
+}
+
 export const authRouter = createRouter({
-  me: authedQuery.query((opts) => opts.ctx.user),
+  // Passwort-Feld nie an den Browser ausliefern
+  me: authedQuery.query(({ ctx }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash, ...user } = ctx.user;
+    return user;
+  }),
+
+  // Öffentlicher Demo-Zugang: ohne Passwort, nur Lesezugriff aufs Dashboard
+  demoLogin: publicQuery.mutation(async ({ ctx }) => {
+    if (!env.demoEnabled) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Der Demo-Zugang ist deaktiviert." });
+    }
+    await upsertUser({
+      username: Demo.username,
+      passwordHash: "",
+      name: Demo.displayName,
+      role: "user",
+    });
+    const user = await findUserByUsername(Demo.username);
+    if (!user) throw new Error("Demo-Benutzer konnte nicht angelegt werden");
+
+    await setSessionCookie(ctx, user);
+    return { success: true };
+  }),
   
   login: publicQuery
     .input(z.object({ username: z.string(), password: z.string() }))
@@ -18,6 +63,11 @@ export const authRouter = createRouter({
         const { username, password } = input;
         
         console.log("🔐 Login Versuch:", { username, adminPasswordSet: !!env.adminPassword });
+
+        // Der Demo-Benutzername ist reserviert und darf nie Admin-Rechte bekommen
+        if (username === Demo.username) {
+          throw new Error("Für den Demo-Zugang bitte „Demo ansehen“ nutzen");
+        }
         
         // Prüfe ob ADMIN_PASSWORD gesetzt ist
         if (!env.adminPassword) {
@@ -71,24 +121,7 @@ export const authRouter = createRouter({
           throw new Error("User konnte nicht erstellt werden");
         }
         
-        const token = await signSessionToken({
-          userId: user.id,
-          username: user.username,
-          role: user.role,
-        });
-        console.log("🔑 Token erstellt");
-        
-        const opts = getSessionCookieOptions(ctx.req.headers);
-        ctx.resHeaders.append(
-          "set-cookie",
-          cookie.serialize(Session.cookieName, token, {
-            httpOnly: opts.httpOnly,
-            path: opts.path,
-            sameSite: opts.sameSite?.toLowerCase() as "lax" | "none",
-            secure: opts.secure,
-            maxAge: Session.maxAgeMs / 1000,
-          }),
-        );
+        await setSessionCookie(ctx, user);
         console.log("🍪 Cookie gesetzt");
         
         return { success: true, user: { id: user.id, username: user.username, name: user.name, role: user.role } };

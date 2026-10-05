@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isDemoUser } from "@contracts/constants";
 import { createRouter, adminQuery } from "./middleware";
 import * as engine from "./services/workflow-engine";
 import { getPublicSettings, setSetting } from "./services/settings";
@@ -160,7 +161,14 @@ export const workflowRouter = createRouter({
     }),
 
   // ── Settings (Gemini-Token etc.) ───────────────────────────────
-  getSettings: adminQuery.query(() => getPublicSettings()),
+  getSettings: adminQuery.query(async ({ ctx }) => {
+    const settings = await getPublicSettings();
+    // Demo-Gäste sehen nicht einmal den maskierten Key
+    if (isDemoUser(ctx.user)) {
+      return { ...settings, apiKeyMasked: settings.hasApiKey ? "••••••••" : "" };
+    }
+    return settings;
+  }),
 
   updateSettings: adminQuery
     .input(

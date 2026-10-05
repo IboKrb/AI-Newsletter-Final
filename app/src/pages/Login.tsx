@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Newspaper } from "lucide-react";
+import { Newspaper, Eye } from "lucide-react";
 import { trpc } from "@/providers/trpc";
+import { Paths } from "@contracts/constants";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -53,6 +54,14 @@ export default function Login() {
                 {loginMutation.isPending ? "Anmelden…" : "Anmelden"}
               </Button>
             </form>
+            <div className="mt-6 border-t border-border pt-5 text-center">
+              <p className="mb-3 text-sm text-muted-foreground">Kein Zugang? Schau dir das Dashboard als Gast an.</p>
+              <Button asChild variant="outline" className="w-full">
+                <Link to={Paths.demo}>
+                  <Eye className="mr-2 h-4 w-4" /> Demo ansehen (nur Lesen)
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

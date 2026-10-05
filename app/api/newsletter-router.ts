@@ -20,6 +20,9 @@ import { eq, desc, and, or, like, sql, inArray } from "drizzle-orm";
 import { hashContent } from "./services/dedupe";
 import { enrichTags } from "./services/tagger";
 
+// Startseiten-Fallback: so viele Archiv-Beiträge, wenn aktuell nichts veröffentlicht ist
+const HOME_ARCHIVE_LIMIT = 30;
+
 export const newsletterRouter = createRouter({
   // Get latest published issue
   getLatest: publicQuery.query(async () => {
@@ -578,6 +581,31 @@ export const newsletterRouter = createRouter({
 
       return { articles: rows, total: Number(countResult[0]?.count ?? 0) };
     }),
+  // Öffentlich: Startseite — die aktuelle Ausgabe. Ist (noch) nichts veröffentlicht
+  // (z.B. alles nach 7 Tagen archiviert), werden die neuesten Archiv-Beiträge gezeigt.
+  listHomeArticles: publicQuery
+    .input(z.object({ limit: z.number().max(100).default(100) }).optional())
+    .query(async ({ input }) => {
+      const db = getDb();
+      const limit = input?.limit ?? 100;
+
+      const current = await db
+        .select()
+        .from(articles)
+        .where(eq(articles.status, "published"))
+        .orderBy(desc(articles.publishedAt))
+        .limit(limit);
+      if (current.length > 0) return { articles: current, fromArchive: false };
+
+      const latest = await db
+        .select()
+        .from(articles)
+        .where(eq(articles.status, "archived"))
+        .orderBy(desc(articles.publishedAt))
+        .limit(Math.min(limit, HOME_ARCHIVE_LIMIT));
+      return { articles: latest, fromArchive: true };
+    }),
+
   listByCategory: publicQuery
     .input(z.object({
       category: z.enum(["news", "tools", "prompts", "tutorials", "podcasts", "videos", "reads", "image_gen"]),
@@ -608,13 +636,13 @@ export const newsletterRouter = createRouter({
       return { articles: rows, total: Number(countResult[0]?.count ?? 0) };
     }),
 
-  // Öffentlich: Alle eindeutigen Tags
+  // Öffentlich: Alle eindeutigen Tags (die Bibliothek zeigt auch archivierte Artikel)
   listTags: publicQuery.query(async () => {
     const db = getDb();
     const rows = await db
       .select({ tags: articles.tags })
       .from(articles)
-      .where(eq(articles.status, "published"));
+      .where(inArray(articles.status, ["published", "archived"]));
 
     const tagSet = new Set<string>();
     for (const row of rows) {

@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/providers/trpc";
-import { Zap, ArrowRight, Sparkles, Globe, TrendingUp, BookOpen } from "lucide-react";
+import { Zap, ArrowRight, Sparkles, Globe, TrendingUp, BookOpen, Eye } from "lucide-react";
+import { Paths } from "@contracts/constants";
 
 export default function HeroSection() {
   const [email, setEmail] = useState("");
@@ -18,8 +20,8 @@ export default function HeroSection() {
     setEmail("");
   };
 
-  // Aktuelle veröffentlichte Artikel für die Übersicht (echte Daten)
-  const { data: latest } = trpc.newsletter.listPublishedArticles.useQuery({ limit: 5, offset: 0 });
+  // Aktuelle Artikel für die Übersicht (echte Daten, sonst neueste aus dem Archiv)
+  const { data: latest } = trpc.newsletter.listHomeArticles.useQuery({ limit: 5 });
   const highlights = latest?.articles ?? [];
 
   return (
@@ -79,6 +81,13 @@ export default function HeroSection() {
                 Danke! Du erhältst ab jetzt den wöchentlichen AI Newsletter.
               </p>
             )}
+            <Link
+              to={Paths.demo}
+              className="link-underline mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700"
+            >
+              <Eye className="h-4 w-4" /> Live-Demo: Redaktions-Dashboard mit KI-Workflows ansehen
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
 
           <div className="relative hidden animate-fade-in md:block">

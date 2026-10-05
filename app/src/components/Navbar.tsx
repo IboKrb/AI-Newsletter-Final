@@ -1,21 +1,24 @@
 import { Link, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
-import { Zap, Menu, X, Newspaper, Crown, Library, Shield, LogOut } from "lucide-react";
+import { Zap, Menu, X, Newspaper, Library, Shield, LogOut, Eye } from "lucide-react";
 import { useState } from "react";
 import type { User } from "@db/schema";
+import { Paths, isDemoUser } from "@contracts/constants";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Navbar({
   user,
   isLoading,
 }: {
-  user: User | null;
+  user: Omit<User, "passwordHash"> | null;
   isLoading: boolean;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === "/";
   const { logout } = useAuth();
+  const isDemo = isDemoUser(user);
+  const canSeeDashboard = user?.role === "admin" || isDemo;
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id);
@@ -55,20 +58,20 @@ export default function Navbar({
           <Link to="/library" className={`flex items-center gap-1.5 ${navLink}`}>
             <Library className="h-4 w-4" /> Bibliothek
           </Link>
-          {user?.role === "admin" && (
+          {canSeeDashboard && (
             <Link
               to="/admin"
               className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 transition-colors hover:text-emerald-700 link-underline"
             >
-              <Shield className="h-4 w-4" /> Admin
+              <Shield className="h-4 w-4" /> {isDemo ? "Dashboard" : "Admin"}
             </Link>
           )}
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          {user?.tier === "premium" && (
+          {isDemo && (
             <span className="flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
-              <Crown className="h-3 w-3" /> Premium
+              <Eye className="h-3 w-3" /> Demo · nur Lesen
             </span>
           )}
           {!isLoading &&
@@ -85,11 +88,18 @@ export default function Navbar({
                 </Button>
               </div>
             ) : (
-              <Link to="/login">
-                <Button variant="outline" size="sm">
-                  <Zap className="mr-1 h-3 w-3" /> Login
-                </Button>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link to={Paths.demo}>
+                  <Button size="sm" className="bg-brand-gradient text-white">
+                    <Eye className="mr-1 h-3 w-3" /> Live-Demo
+                  </Button>
+                </Link>
+                <Link to="/login">
+                  <Button variant="outline" size="sm">
+                    <Zap className="mr-1 h-3 w-3" /> Login
+                  </Button>
+                </Link>
+              </div>
             ))}
         </div>
 
@@ -128,13 +138,13 @@ export default function Navbar({
             >
               <Library className="h-4 w-4" /> Bibliothek
             </Link>
-            {user?.role === "admin" && (
+            {canSeeDashboard && (
               <Link
                 to="/admin"
                 className="flex items-center gap-2 text-sm font-medium text-emerald-600"
                 onClick={() => setMobileOpen(false)}
               >
-                <Shield className="h-4 w-4" /> Admin
+                <Shield className="h-4 w-4" /> {isDemo ? "Dashboard" : "Admin"}
               </Link>
             )}
             {user ? (
@@ -146,9 +156,16 @@ export default function Navbar({
                 <LogOut className="mr-2 h-4 w-4" /> Logout
               </Button>
             ) : (
-              <Link to="/login" className="mt-2" onClick={() => setMobileOpen(false)}>
-                <Button className="w-full bg-brand-gradient text-white">Login</Button>
-              </Link>
+              <div className="mt-2 flex flex-col gap-2">
+                <Link to={Paths.demo} onClick={() => setMobileOpen(false)}>
+                  <Button className="w-full bg-brand-gradient text-white">
+                    <Eye className="mr-2 h-4 w-4" /> Live-Demo ansehen
+                  </Button>
+                </Link>
+                <Link to="/login" onClick={() => setMobileOpen(false)}>
+                  <Button variant="outline" className="w-full">Login</Button>
+                </Link>
+              </div>
             )}
           </div>
         </div>

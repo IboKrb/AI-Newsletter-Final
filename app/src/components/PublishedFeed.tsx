@@ -63,7 +63,7 @@ type Article = {
 };
 
 export default function PublishedFeed() {
-  const { data, isLoading } = trpc.newsletter.listPublishedArticles.useQuery({ limit: 100, offset: 0 });
+  const { data, isLoading } = trpc.newsletter.listHomeArticles.useQuery({ limit: 100 });
   const [selected, setSelected] = useState<Article | null>(null);
 
   const articles = (data?.articles ?? []) as unknown as Article[];
@@ -94,6 +94,12 @@ export default function PublishedFeed() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16">
+      {data?.fromArchive && (
+        <p className="mb-10 flex items-center gap-2 text-sm text-muted-foreground">
+          <Inbox className="h-4 w-4" /> Diese Woche ist noch keine neue Ausgabe erschienen – hier die
+          neuesten Beiträge aus der Bibliothek.
+        </p>
+      )}
       {byCategory.map((group) => {
         const Icon = CATEGORY_ICON[group.cat] ?? Newspaper;
         return (

@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Login from "./pages/Login"
 import Library from "./pages/Library"
 import Admin from "./pages/Admin"
+import Demo from "./pages/Demo"
 import NotFound from "./pages/NotFound"
 import { Toaster } from "@/components/ui/sonner"
 
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/library" element={<Library />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/demo" element={<Demo />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster richColors position="top-right" closeButton />

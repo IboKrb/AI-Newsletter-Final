@@ -39,6 +39,7 @@ Trage unter **Environment Variables** mindestens ein (siehe `.env.example`):
 | `AI_API_KEY` | *optional* — besser später in der UI eintragen |
 | `AI_MODEL` | `gemini-2.5-flash` |
 | `TEST_MODE` | `false` (oder `true` zum Ausprobieren ohne Key) |
+| `DEMO_MODE` | `true` (Standard) – öffentlicher Demo-Zugang unter `/demo` (nur Lesen) + Demo-Daten; `false` schaltet ab |
 
 > Der **Gemini-Token muss nicht hier** gesetzt werden — du kannst ihn nach dem
 > Deploy bequem im Admin-Bereich unter **Einstellungen** eingeben.

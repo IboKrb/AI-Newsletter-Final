@@ -715,7 +715,7 @@ async function upsertSource(name: string, url: string, category: Category): Prom
 // SEED (Default-Templates + Standard-Quellen beim ersten Start)
 // ═══════════════════════════════════════════════════════════════
 
-const CATEGORY_LABELS: Record<Category, string> = {
+export const CATEGORY_LABELS: Record<Category, string> = {
   news: "KI-News",
   tools: "KI-Tools",
   prompts: "Prompts",

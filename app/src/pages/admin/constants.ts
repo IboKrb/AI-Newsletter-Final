@@ -1,3 +1,5 @@
+export type AdminTab = "overview" | "articles" | "workflows" | "board" | "runs" | "sources" | "settings";
+
 export const CATEGORIES = [
   { value: "news", label: "News" },
   { value: "tools", label: "Tools" },

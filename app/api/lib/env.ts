@@ -19,6 +19,8 @@ export const env = {
   aiModel: process.env.AI_MODEL || "gemini-3.1-flash-lite",
   // ── Debug/Test Modus ──
   isTestMode: process.env.TEST_MODE === "true",
+  // ── Öffentlicher Demo-Zugang (read-only) + Demo-Daten — DEMO_MODE=false schaltet ab ──
+  demoEnabled: process.env.DEMO_MODE !== "false",
 };
 
 // Logging beim Start
@@ -30,5 +32,6 @@ if (process.env.NODE_ENV !== "test") {
     AI_MODEL: env.aiModel,
     NODE_ENV: process.env.NODE_ENV,
     TEST_MODE: env.isTestMode ? "🟢 AKTIV" : "🔴 AUS",
+    DEMO_MODE: env.demoEnabled ? "🟢 AKTIV" : "🔴 AUS",
   });
 }

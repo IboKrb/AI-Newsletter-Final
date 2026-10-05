@@ -17,7 +17,8 @@ export type SettingKey =
   | "test_mode"
   | "cron_enabled"
   | "cron_day"
-  | "cron_hour";
+  | "cron_hour"
+  | "demo_seed_version";
 
 const ENV_FALLBACK: Record<SettingKey, string> = {
   ai_api_key: env.aiApiKey,
@@ -29,6 +30,7 @@ const ENV_FALLBACK: Record<SettingKey, string> = {
   cron_enabled: "true",
   cron_day: "1",
   cron_hour: "6",
+  demo_seed_version: "",
 };
 
 export async function getSetting(key: SettingKey): Promise<string> {

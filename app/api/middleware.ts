@@ -1,4 +1,4 @@
-import { ErrorMessages } from "@contracts/constants";
+import { ErrorMessages, isDemoUser } from "@contracts/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
@@ -23,20 +23,25 @@ const requireAuth = t.middleware(async (opts) => {
   return next({ ctx: { ...ctx, user: ctx.user } });
 });
 
-function requireRole(role: string) {
-  return t.middleware(async (opts) => {
-    const { ctx, next } = opts;
+// Admins dürfen alles. Der Demo-Gast darf alle Admin-Abfragen lesen,
+// jede Mutation (Speichern, Löschen, Workflow starten …) wird abgelehnt.
+const requireAdmin = t.middleware(async (opts) => {
+  const { ctx, next, type } = opts;
 
-    if (!ctx.user || ctx.user.role !== role) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: ErrorMessages.insufficientRole,
-      });
-    }
-
+  if (ctx.user?.role === "admin") {
     return next({ ctx: { ...ctx, user: ctx.user } });
+  }
+
+  if (isDemoUser(ctx.user)) {
+    if (type === "query") return next({ ctx: { ...ctx, user: ctx.user! } });
+    throw new TRPCError({ code: "FORBIDDEN", message: ErrorMessages.demoReadOnly });
+  }
+
+  throw new TRPCError({
+    code: "FORBIDDEN",
+    message: ErrorMessages.insufficientRole,
   });
-}
+});
 
 export const authedQuery = t.procedure.use(requireAuth);
-export const adminQuery = authedQuery.use(requireRole("admin"));
+export const adminQuery = authedQuery.use(requireAdmin);

@@ -7,6 +7,7 @@ import { createContext } from "./context";
 import { env } from "./lib/env";
 import { startWeeklyCronjob, startDailyArchiveJob } from "./services/scheduler";
 import { seedDefaults, archiveOldArticles } from "./services/workflow-engine";
+import { seedDemoData } from "./services/demo-seed";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
 
@@ -27,10 +28,15 @@ app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 
 export default app;
 
-// Default-Templates & Standard-Quellen sicherstellen (idempotent).
-// Läuft in Dev (via Vite) und Prod; Fehler (z.B. fehlende Tabellen vor db:push)
-// werden geloggt, blockieren den Start aber nicht.
+// Default-Templates & Standard-Quellen sicherstellen (idempotent), danach einmalig
+// die Demo-Daten (DEMO_MODE). Läuft in Dev (via Vite) und Prod; Fehler (z.B. fehlende
+// Tabellen vor db:push) werden geloggt, blockieren den Start aber nicht.
 void seedDefaults()
+  .then(() =>
+    seedDemoData().catch((err) => {
+      console.warn("[Boot] Demo-Daten fehlgeschlagen:", err instanceof Error ? err.message : err);
+    }),
+  )
   .then(() => archiveOldArticles(7)) // Catch-up: alte Artikel direkt beim Start archivieren
   .catch((err) => {
     console.warn("[Boot] Seed/Archiv übersprungen/fehlgeschlagen:", err instanceof Error ? err.message : err);
